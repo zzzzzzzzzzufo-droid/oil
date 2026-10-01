@@ -23,6 +23,8 @@ import { CarDetailModal } from './components/CarDetailModal';
 import { EditCarModal } from './components/EditCarModal';
 import { DisposalMemoModal } from './components/DisposalMemoModal';
 import { SupportModal } from './components/SupportModal';
+import { AuditTrailModal } from './components/AuditTrailModal';
+import { MarketIntelligenceModal } from './components/MarketIntelligenceModal';
 import { NotificationToast, ToastMessage } from './components/NotificationToast';
 
 export default function App() {
@@ -40,6 +42,9 @@ export default function App() {
   const [editingCar, setEditingCar] = useState<Vehicle | null>(null);
   const [memoOpen, setMemoOpen] = useState(false);
   const [supportOpen, setSupportOpen] = useState(false);
+  const [auditOpen, setAuditOpen] = useState(false);
+  const [marketIntelOpen, setMarketIntelOpen] = useState(false);
+  const [marketIntelVehicle, setMarketIntelVehicle] = useState<Vehicle | null>(null);
 
   // Network & Sync States
   const [isOnline, setIsOnline] = useState<boolean>(navigator.onLine);
@@ -207,8 +212,14 @@ export default function App() {
           darkMode={darkMode}
           onToggleDarkMode={() => setDarkMode(!darkMode)}
           onToggleSidebar={() => setSidebarOpen(!sidebarOpen)}
+          sidebarOpen={sidebarOpen}
           onOpenMemo={() => setMemoOpen(true)}
           onOpenSupport={() => setSupportOpen(true)}
+          onOpenAudit={() => setAuditOpen(true)}
+          onOpenMarketIntel={() => {
+            setMarketIntelVehicle(null);
+            setMarketIntelOpen(true);
+          }}
           onResetData={handleResetData}
           isOnline={isOnline}
           syncStatus={syncStatus}
@@ -239,6 +250,12 @@ export default function App() {
           <AnalyticsSection
             vehicles={vehicles}
             onSelectCar={(car) => setSelectedCar(car)}
+            onEditCar={(car) => setEditingCar(car)}
+            onOpenMemo={() => setMemoOpen(true)}
+            onOpenMarketIntel={(car) => {
+              setMarketIntelVehicle(car || null);
+              setMarketIntelOpen(true);
+            }}
           />
 
           {/* Enterprise Footer */}
@@ -269,6 +286,11 @@ export default function App() {
           setSelectedCar(null);
           setEditingCar(car);
         }}
+        onCheckMarketPrice={(car) => {
+          setSelectedCar(null);
+          setMarketIntelVehicle(car);
+          setMarketIntelOpen(true);
+        }}
       />
 
       {/* Real-time Edit Modal */}
@@ -289,6 +311,22 @@ export default function App() {
       <SupportModal
         isOpen={supportOpen}
         onClose={() => setSupportOpen(false)}
+      />
+
+      {/* Audit Trail Modal */}
+      <AuditTrailModal
+        isOpen={auditOpen}
+        onClose={() => setAuditOpen(false)}
+      />
+
+      {/* AI Market Intelligence Pro Modal (Google Search Grounding via gemini-3.5-flash) */}
+      <MarketIntelligenceModal
+        isOpen={marketIntelOpen}
+        onClose={() => {
+          setMarketIntelOpen(false);
+          setMarketIntelVehicle(null);
+        }}
+        initialVehicle={marketIntelVehicle}
       />
 
       {/* Real-time Notification Toast */}

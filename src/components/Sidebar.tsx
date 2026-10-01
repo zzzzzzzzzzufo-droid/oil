@@ -24,17 +24,18 @@ export const Sidebar: React.FC<SidebarProps> = ({
 }) => {
   return (
     <>
-      {/* Mobile backdrop */}
+      {/* Backdrop when sidebar is expanded */}
       {isOpen && (
         <div
           onClick={onClose}
-          className="fixed inset-0 bg-slate-900/50 backdrop-blur-xs z-30 md:hidden"
+          className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs z-30 transition-opacity"
+          title="คลิกเพื่อย่อเก็บแถบข้าง"
         />
       )}
 
       <aside
         className={`w-64 bg-white dark:bg-[#1e293b] border-r border-slate-200 dark:border-slate-700 flex flex-col shrink-0 transition-all duration-300 z-40 h-full fixed md:relative ${
-          isOpen ? 'left-0 shadow-2xl md:shadow-none' : '-left-64 md:left-0 md:w-64'
+          isOpen ? 'ml-0 shadow-2xl md:shadow-lg' : '-ml-64 shadow-none pointer-events-none md:pointer-events-auto'
         }`}
       >
         <div className="h-20 flex items-center justify-between px-4 border-b border-slate-100 dark:border-slate-700">
@@ -46,8 +47,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
           </div>
           <button
             onClick={onClose}
-            aria-label="Close Sidebar"
-            className="md:hidden text-slate-400 hover:text-red-500 p-1"
+            aria-label="ย่อเก็บแถบข้าง"
+            title="ย่อเก็บแถบข้าง"
+            className="text-slate-400 hover:text-red-500 p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
           >
             <X className="w-5 h-5" />
           </button>

@@ -154,9 +154,8 @@ export function subscribeToFleetVehicles(
       onUpdate(list);
     },
     (error) => {
-      console.error("Firestore onSnapshot error:", error);
+      console.warn("Firestore onSnapshot error (continuing with local cache):", error);
       if (onError) onError(error);
-      handleFirestoreError(error, OperationType.LIST, path);
     }
   );
 }

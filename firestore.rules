@@ -22,6 +22,10 @@ service cloud.firestore {
         && data.timestamp is string && data.timestamp.size() <= 100;
     }
 
+    match /test/{docId} {
+      allow read: if true;
+    }
+
     match /fleet_vehicles/{vehicleId} {
       allow read: if true;
       allow create, update: if isValidId(vehicleId) && isValidVehicle(request.resource.data);

@@ -403,6 +403,51 @@ export const EditCarModal: React.FC<EditCarModalProps> = ({
                 </div>
               </div>
             </div>
+            {/* Live Calculation Preview */}
+            {(() => {
+              const liveDist = (Number(m6Dist) || 0) + (Number(m7Dist) || 0) + (Number(m8Dist) || 0);
+              const liveFuel = (Number(m6Fuel) || 0) + (Number(m7Fuel) || 0) + (Number(m8Fuel) || 0);
+              const liveCost = (Number(m6Cost) || 0) + (Number(m7Cost) || 0) + (Number(m8Cost) || 0);
+              const liveJobs = (Number(m6Jobs) || 0) + (Number(m7Jobs) || 0) + (Number(m8Jobs) || 0);
+              const liveEff = liveFuel > 0 ? liveDist / liveFuel : 0;
+              const liveCkm = liveDist > 0 ? liveCost / liveDist : 0;
+              const liveCjob = liveJobs > 0 ? liveCost / liveJobs : 0;
+
+              return (
+                <div className="p-3.5 bg-blue-50/70 dark:bg-blue-950/30 rounded-xl border border-blue-200 dark:border-blue-800 text-xs">
+                  <div className="font-bold text-blue-800 dark:text-blue-300 mb-2 flex items-center justify-between">
+                    <span>⚡ สรุปผลคำนวณสด 3 เดือน (Live Calculated Preview):</span>
+                    {liveEff >= 13 ? (
+                      <span className="text-emerald-600 font-bold">เกณฑ์ดีมาก</span>
+                    ) : liveEff >= 11 ? (
+                      <span className="text-amber-600 font-bold">เกณฑ์ดี</span>
+                    ) : liveEff >= 9 ? (
+                      <span className="text-orange-500 font-bold">เกณฑ์พอใช้</span>
+                    ) : (
+                      <span className="text-red-600 font-bold">เกณฑ์วิกฤต (ปรับปรุง)</span>
+                    )}
+                  </div>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-slate-700 dark:text-slate-300">
+                    <div>
+                      <span className="text-[11px] text-slate-500">รวมระยะทาง:</span>
+                      <p className="font-bold">{liveDist.toLocaleString()} กม.</p>
+                    </div>
+                    <div>
+                      <span className="text-[11px] text-slate-500">รวมค่าน้ำมัน:</span>
+                      <p className="font-bold text-red-600 dark:text-red-400">{liveCost.toLocaleString()} บ.</p>
+                    </div>
+                    <div>
+                      <span className="text-[11px] text-slate-500">เฉลี่ย กม./ลิตร:</span>
+                      <p className="font-bold text-blue-600 dark:text-blue-400">{liveEff > 0 ? liveEff.toFixed(2) : '-'} กม./ลิตร</p>
+                    </div>
+                    <div>
+                      <span className="text-[11px] text-slate-500">เฉลี่ย บ./งาน:</span>
+                      <p className="font-bold text-orange-600 dark:text-orange-400">{liveCjob > 0 ? liveCjob.toFixed(2) : '-'} บ./งาน</p>
+                    </div>
+                  </div>
+                </div>
+              );
+            })()}
           </div>
 
           {/* Recommendation & Reason */}

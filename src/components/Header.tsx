@@ -9,15 +9,20 @@ import {
   Headphones,
   RotateCcw,
   CheckCircle2,
-  Cloud
+  Cloud,
+  History,
+  Sparkles
 } from 'lucide-react';
 
 interface HeaderProps {
   darkMode: boolean;
   onToggleDarkMode: () => void;
   onToggleSidebar: () => void;
+  sidebarOpen?: boolean;
   onOpenMemo: () => void;
   onOpenSupport: () => void;
+  onOpenAudit?: () => void;
+  onOpenMarketIntel?: () => void;
   onResetData: () => void;
   isOnline: boolean;
   syncStatus: 'synced' | 'syncing' | 'offline';
@@ -27,8 +32,11 @@ export const Header: React.FC<HeaderProps> = ({
   darkMode,
   onToggleDarkMode,
   onToggleSidebar,
+  sidebarOpen,
   onOpenMemo,
   onOpenSupport,
+  onOpenAudit,
+  onOpenMarketIntel,
   onResetData,
   isOnline,
   syncStatus
@@ -38,8 +46,13 @@ export const Header: React.FC<HeaderProps> = ({
       <div className="flex items-center gap-3 md:gap-4">
         <button
           onClick={onToggleSidebar}
-          aria-label="Toggle Navigation"
-          className="text-slate-500 dark:text-slate-400 hover:text-blue-600 p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+          aria-label={sidebarOpen ? "ย่อเก็บแถบข้าง" : "เปิดแถบข้าง"}
+          title={sidebarOpen ? "ย่อเก็บแถบข้าง (Collapse Menu)" : "เปิดแถบข้าง (Open Menu)"}
+          className={`p-2 rounded-lg transition-colors ${
+            sidebarOpen
+              ? 'text-blue-600 bg-blue-50 dark:bg-slate-800'
+              : 'text-slate-500 dark:text-slate-400 hover:text-blue-600 hover:bg-slate-100 dark:hover:bg-slate-800'
+          }`}
         >
           <Menu className="w-5 h-5" />
         </button>
@@ -90,6 +103,30 @@ export const Header: React.FC<HeaderProps> = ({
           <Headphones className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
           <span className="hidden sm:inline">สนับสนุน 24 ชม.</span>
         </button>
+
+        {/* Audit Trail Button */}
+        {onOpenAudit && (
+          <button
+            onClick={onOpenAudit}
+            className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-semibold text-purple-700 dark:text-purple-300 bg-purple-50 dark:bg-purple-950/40 hover:bg-purple-100 dark:hover:bg-purple-900/40 rounded-lg transition-colors border border-purple-200 dark:border-purple-800"
+            title="ดูประวัติการแก้ไขและบันทึกข้อมูล (Audit Trail)"
+          >
+            <History className="w-3.5 h-3.5 text-purple-600 dark:text-purple-400" />
+            <span className="hidden lg:inline">ประวัติแก้ไข</span>
+          </button>
+        )}
+
+        {/* AI Market Intel (Google Search Grounding) */}
+        {onOpenMarketIntel && (
+          <button
+            onClick={onOpenMarketIntel}
+            className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-bold text-slate-900 dark:text-slate-950 bg-amber-400 hover:bg-amber-300 rounded-lg transition-all shadow-xs"
+            title="สืบค้นราคาน้ำมันสดและราคากลางรถมือสองด้วย Google Search Grounding (gemini-3.5-flash)"
+          >
+            <Sparkles className="w-3.5 h-3.5 text-slate-900" />
+            <span className="hidden md:inline">AI ค้นหาข้อมูลสด</span>
+          </button>
+        )}
 
         {/* Reset / Reseed Authentic Data */}
         <button
