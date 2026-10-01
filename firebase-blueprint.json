@@ -1,0 +1,52 @@
+{
+  "entities": {
+    "Vehicle": {
+      "title": "Vehicle",
+      "description": "Information and metrics for each fleet vehicle",
+      "type": "object",
+      "properties": {
+        "plate": { "type": "string", "maxLength": 50 },
+        "order": { "type": "number" },
+        "age": { "type": "number" },
+        "mileage": { "type": "number" },
+        "branch": { "type": "string", "maxLength": 100 },
+        "healthScore": { "type": "number" },
+        "healthStatus": { "type": "string", "maxLength": 50 },
+        "recommendation": { "type": "string", "maxLength": 500 },
+        "estimatedPrice": { "type": "number" },
+        "plan": { "type": "string", "maxLength": 50 },
+        "limit": { "type": "number" },
+        "m6": { "type": "object" },
+        "m7": { "type": "object" },
+        "m8": { "type": "object" },
+        "notes": { "type": "string", "maxLength": 1000 },
+        "updatedAt": { "type": "string", "maxLength": 100 },
+        "updatedBy": { "type": "string", "maxLength": 100 }
+      },
+      "required": ["plate", "order", "plan"]
+    },
+    "AuditLog": {
+      "title": "AuditLog",
+      "description": "Log of changes and actions taken on fleet vehicles",
+      "type": "object",
+      "properties": {
+        "action": { "type": "string", "maxLength": 100 },
+        "vehiclePlate": { "type": "string", "maxLength": 50 },
+        "details": { "type": "string", "maxLength": 1000 },
+        "timestamp": { "type": "string", "maxLength": 100 },
+        "userId": { "type": "string", "maxLength": 128 }
+      },
+      "required": ["action", "timestamp"]
+    }
+  },
+  "firestore": {
+    "/fleet_vehicles/{vehicleId}": {
+      "schema": "Vehicle",
+      "description": "Collection of all 16 fleet vehicles and their monthly operational data"
+    },
+    "/audit_logs/{logId}": {
+      "schema": "AuditLog",
+      "description": "Audit trail for vehicle updates and optimizations"
+    }
+  }
+}

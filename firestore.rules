@@ -1,0 +1,37 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Default deny all
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-\\.]+$');
+    }
+
+    function isValidVehicle(data) {
+      return data.plate is string && data.plate.size() > 0 && data.plate.size() <= 50
+        && data.order is number
+        && data.plan is string && data.plan.size() <= 50;
+    }
+
+    function isValidAuditLog(data) {
+      return data.action is string && data.action.size() > 0 && data.action.size() <= 100
+        && data.timestamp is string && data.timestamp.size() <= 100;
+    }
+
+    match /fleet_vehicles/{vehicleId} {
+      allow read: if true;
+      allow create, update: if isValidId(vehicleId) && isValidVehicle(request.resource.data);
+      allow delete: if false;
+    }
+
+    match /audit_logs/{logId} {
+      allow read: if true;
+      allow create: if isValidId(logId) && isValidAuditLog(request.resource.data);
+      allow update, delete: if false;
+    }
+  }
+}

@@ -1,0 +1,6 @@
+{
+  "name": "Fleet Disposal & Optimization Pro",
+  "description": "ระบบวิเคราะห์ข้อมูลเชิงลึกและบริหารจัดการฟลีทรถยนต์องค์กรอย่างมืออาชีพ รองรับการประเมินสภาพ วิเคราะห์ค่าน้ำมัน จัดอันดับประสิทธิภาพ และขออนุมัติปลดระวาง",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
