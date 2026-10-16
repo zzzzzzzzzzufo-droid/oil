@@ -144,8 +144,12 @@ export function subscribeToFleetVehicles(
 
       const list: Vehicle[] = [];
       snapshot.forEach((d) => {
+        const raw = d.data() as Omit<Vehicle, 'id'>;
         list.push({
-          ...(d.data() as Omit<Vehicle, 'id'>),
+          ...raw,
+          m9: raw.m9 || { dist: 0, fuel: 0, cost: 0, jobs: 0 },
+          m10: raw.m10 || { dist: 0, fuel: 0, cost: 0, jobs: 0 },
+          m11: raw.m11 || { dist: 0, fuel: 0, cost: 0, jobs: 0 },
           id: d.id
         });
       });

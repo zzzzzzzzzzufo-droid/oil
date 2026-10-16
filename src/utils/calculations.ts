@@ -1,4 +1,4 @@
-import { Vehicle, MonthlyOperationalData } from '../types';
+import { Vehicle, MonthlyOperationalData, MonthKey } from '../types';
 
 export function numFormat(num: number | undefined | null, min = 2, max = 2): string {
   if (num === undefined || num === null || isNaN(num)) return '-';
@@ -8,35 +8,56 @@ export function numFormat(num: number | undefined | null, min = 2, max = 2): str
   });
 }
 
-export function calculateMonthlyStats(m: MonthlyOperationalData) {
+export function calculateMonthlyStats(m: MonthlyOperationalData | undefined) {
+  if (!m) return { eff: 0, cKm: 0, cJob: 0 };
   const eff = m.fuel > 0 ? m.dist / m.fuel : 0;
   const cKm = m.dist > 0 ? m.cost / m.dist : 0;
   const cJob = m.jobs > 0 ? m.cost / m.jobs : 0;
   return { eff, cKm, cJob };
 }
 
-export function calculateVehicleTotals(vehicle: Vehicle) {
+export function calculateVehicleTotals(
+  vehicle: Vehicle,
+  selectedMonths: MonthKey[] = ['m6', 'm7', 'm8']
+) {
   const m6 = calculateMonthlyStats(vehicle.m6);
   const m7 = calculateMonthlyStats(vehicle.m7);
   const m8 = calculateMonthlyStats(vehicle.m8);
+  const m9 = calculateMonthlyStats(vehicle.m9);
+  const m10 = calculateMonthlyStats(vehicle.m10);
+  const m11 = calculateMonthlyStats(vehicle.m11);
 
-  const totalDist = vehicle.m6.dist + vehicle.m7.dist + vehicle.m8.dist;
-  const totalFuel = vehicle.m6.fuel + vehicle.m7.fuel + vehicle.m8.fuel;
-  const totalCost = vehicle.m6.cost + vehicle.m7.cost + vehicle.m8.cost;
-  const totalJobs = vehicle.m6.jobs + vehicle.m7.jobs + vehicle.m8.jobs;
+  let totalDist = 0;
+  let totalFuel = 0;
+  let totalCost = 0;
+  let totalJobs = 0;
+
+  selectedMonths.forEach((mKey) => {
+    const data = vehicle[mKey];
+    if (data) {
+      totalDist += data.dist || 0;
+      totalFuel += data.fuel || 0;
+      totalCost += data.cost || 0;
+      totalJobs += data.jobs || 0;
+    }
+  });
 
   const totalEff = totalFuel > 0 ? totalDist / totalFuel : 0;
   const totalCKm = totalDist > 0 ? totalCost / totalDist : 0;
   const totalCJob = totalJobs > 0 ? totalCost / totalJobs : 0;
 
-  // 3-month total limit
-  const threeMonthLimit = vehicle.limit * 3;
-  const limitUsagePercent = threeMonthLimit > 0 ? (totalCost / threeMonthLimit) * 100 : 0;
+  // Total limit based on number of active selected months
+  const monthsCount = selectedMonths.length || 1;
+  const totalLimit = (vehicle.limit || 0) * monthsCount;
+  const limitUsagePercent = totalLimit > 0 ? (totalCost / totalLimit) * 100 : 0;
 
   return {
     m6,
     m7,
     m8,
+    m9,
+    m10,
+    m11,
     totalDist,
     totalFuel,
     totalCost,
@@ -44,6 +65,7 @@ export function calculateVehicleTotals(vehicle: Vehicle) {
     totalEff,
     totalCKm,
     totalCJob,
+    totalLimit,
     limitUsagePercent
   };
 }

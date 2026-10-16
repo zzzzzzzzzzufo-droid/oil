@@ -9,8 +9,8 @@ interface AIBannerProps {
 export const AIBanner: React.FC<AIBannerProps> = ({ vehicles }) => {
   // Check vehicles with high cost per job or low mileage vs high cost
   const anomalies = vehicles.filter((v) => {
-    const totalJobs = v.m6.jobs + v.m7.jobs + v.m8.jobs;
-    const totalCost = v.m6.cost + v.m7.cost + v.m8.cost;
+    const totalJobs = v.m6.jobs + v.m7.jobs + v.m8.jobs + (v.m9?.jobs || 0) + (v.m10?.jobs || 0) + (v.m11?.jobs || 0);
+    const totalCost = v.m6.cost + v.m7.cost + v.m8.cost + (v.m9?.cost || 0) + (v.m10?.cost || 0) + (v.m11?.cost || 0);
     const cJob = totalJobs > 0 ? totalCost / totalJobs : 0;
     return cJob > 400 || (v.m8.jobs === 0 && v.m8.cost > 5000);
   });

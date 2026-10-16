@@ -147,7 +147,7 @@ export const CarDetailModal: React.FC<CarDetailModalProps> = ({
             <div className="flex justify-between items-center mb-3">
               <h4 className="font-bold text-sm text-slate-800 dark:text-slate-200 flex items-center gap-2">
                 <TrendingUp className="w-4 h-4 text-orange-500" />
-                <span>กราฟแนวโน้มค่าน้ำมันและงาน (มิ.ย. - ส.ค. 69)</span>
+                <span>กราฟแนวโน้มค่าน้ำมันและงาน 6 เดือน (มิ.ย. - พ.ย. 69)</span>
               </h4>
               <div className="flex items-center gap-3 text-[11px] font-semibold">
                 <span className="flex items-center gap-1 text-red-600 dark:text-red-400">
@@ -159,8 +159,8 @@ export const CarDetailModal: React.FC<CarDetailModalProps> = ({
               </div>
             </div>
 
-            {/* SVG Trend Chart */}
-            <div className="h-28 w-full mb-3 bg-white dark:bg-slate-800 rounded-lg p-2 border border-slate-200 dark:border-slate-700 flex flex-col justify-end relative">
+            {/* SVG Trend Chart across all 6 Months */}
+            <div className="h-32 w-full mb-3 bg-white dark:bg-slate-800 rounded-lg p-2 border border-slate-200 dark:border-slate-700 flex flex-col justify-end relative">
               <svg className="w-full h-full overflow-visible" viewBox="0 0 300 70" preserveAspectRatio="none">
                 {/* Grid horizontal lines */}
                 <line x1="0" y1="15" x2="300" y2="15" stroke="#94a3b8" strokeOpacity="0.2" strokeDasharray="3 3" />
@@ -168,31 +168,55 @@ export const CarDetailModal: React.FC<CarDetailModalProps> = ({
 
                 {/* Cost Path (Red) */}
                 {(() => {
-                  const cMax = Math.max(vehicle.m6.cost, vehicle.m7.cost, vehicle.m8.cost, 1);
-                  const y1 = 60 - (vehicle.m6.cost / cMax) * 45;
-                  const y2 = 60 - (vehicle.m7.cost / cMax) * 45;
-                  const y3 = 60 - (vehicle.m8.cost / cMax) * 45;
+                  const mData = [
+                    vehicle.m6?.cost || 0,
+                    vehicle.m7?.cost || 0,
+                    vehicle.m8?.cost || 0,
+                    vehicle.m9?.cost || 0,
+                    vehicle.m10?.cost || 0,
+                    vehicle.m11?.cost || 0
+                  ];
+                  const cMax = Math.max(...mData, 1);
+                  const xCoords = [25, 75, 125, 175, 225, 275];
+                  const points = mData.map((val, i) => `${xCoords[i]},${60 - (val / cMax) * 45}`).join(' ');
+
                   return (
                     <>
                       <polyline
                         fill="none"
                         stroke="#ef4444"
                         strokeWidth="2.5"
-                        points={`50,${y1} 150,${y2} 250,${y3}`}
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        points={points}
                       />
-                      <circle cx="50" cy={y1} r="4" fill="#ef4444" />
-                      <circle cx="150" cy={y2} r="4" fill="#ef4444" />
-                      <circle cx="250" cy={y3} r="4" fill="#ef4444" />
+                      {mData.map((val, i) => (
+                        <circle
+                          key={`c-${i}`}
+                          cx={xCoords[i]}
+                          cy={60 - (val / cMax) * 45}
+                          r={val > 0 ? 3.5 : 2}
+                          fill={val > 0 ? '#ef4444' : '#94a3b8'}
+                        />
+                      ))}
                     </>
                   );
                 })()}
 
                 {/* Jobs Path (Blue) */}
                 {(() => {
-                  const jMax = Math.max(vehicle.m6.jobs, vehicle.m7.jobs, vehicle.m8.jobs, 1);
-                  const y1 = 60 - (vehicle.m6.jobs / jMax) * 45;
-                  const y2 = 60 - (vehicle.m7.jobs / jMax) * 45;
-                  const y3 = 60 - (vehicle.m8.jobs / jMax) * 45;
+                  const jData = [
+                    vehicle.m6?.jobs || 0,
+                    vehicle.m7?.jobs || 0,
+                    vehicle.m8?.jobs || 0,
+                    vehicle.m9?.jobs || 0,
+                    vehicle.m10?.jobs || 0,
+                    vehicle.m11?.jobs || 0
+                  ];
+                  const jMax = Math.max(...jData, 1);
+                  const xCoords = [25, 75, 125, 175, 225, 275];
+                  const points = jData.map((val, i) => `${xCoords[i]},${60 - (val / jMax) * 45}`).join(' ');
+
                   return (
                     <>
                       <polyline
@@ -200,59 +224,101 @@ export const CarDetailModal: React.FC<CarDetailModalProps> = ({
                         stroke="#2563eb"
                         strokeWidth="2.5"
                         strokeDasharray="4 2"
-                        points={`50,${y1} 150,${y2} 250,${y3}`}
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        points={points}
                       />
-                      <circle cx="50" cy={y1} r="3.5" fill="#2563eb" />
-                      <circle cx="150" cy={y2} r="3.5" fill="#2563eb" />
-                      <circle cx="250" cy={y3} r="3.5" fill="#2563eb" />
+                      {jData.map((val, i) => (
+                        <circle
+                          key={`j-${i}`}
+                          cx={xCoords[i]}
+                          cy={60 - (val / jMax) * 45}
+                          r={val > 0 ? 3.5 : 2}
+                          fill={val > 0 ? '#2563eb' : '#94a3b8'}
+                        />
+                      ))}
                     </>
                   );
                 })()}
               </svg>
-              <div className="flex justify-between px-8 text-[10px] text-slate-400 mt-1">
-                <span>เดือน 6 (มิ.ย.)</span>
-                <span>เดือน 7 (ก.ค.)</span>
-                <span>เดือน 8 (ส.ค.)</span>
+              <div className="flex justify-between px-3 text-[10px] text-slate-500 dark:text-slate-400 mt-1 font-semibold">
+                <span>มิ.ย.</span>
+                <span>ก.ค.</span>
+                <span>ส.ค.</span>
+                <span className="text-emerald-600 dark:text-emerald-400">ก.ย.</span>
+                <span className="text-purple-600 dark:text-purple-400">ต.ค.</span>
+                <span className="text-pink-600 dark:text-pink-400">พ.ย.</span>
               </div>
             </div>
 
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
               {[
-                { label: 'เดือน 6 (มิ.ย.)', data: vehicle.m6 },
-                { label: 'เดือน 7 (ก.ค.)', data: vehicle.m7 },
-                { label: 'เดือน 8 (ส.ค.)', data: vehicle.m8 }
-              ].map((m, idx) => (
-                <div
-                  key={idx}
-                  className="bg-white dark:bg-slate-800 p-3 rounded-lg border border-slate-200 dark:border-slate-700 flex flex-col justify-between"
-                >
-                  <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 border-b pb-1 dark:border-slate-700">
-                    {m.label}
-                  </p>
-                  <div className="space-y-1.5 my-2 text-xs">
-                    <div className="flex justify-between items-center">
-                      <span className="text-slate-500 flex items-center gap-1">
-                        <Fuel className="w-3 h-3 text-red-500" /> ค่าน้ำมัน:
-                      </span>
-                      <span className="font-bold text-red-600 dark:text-red-400">
-                        {numFormat(m.data.cost)} บ.
-                      </span>
+                { label: 'เดือน 6 (มิ.ย.)', data: vehicle.m6, isNew: false, theme: 'default' },
+                { label: 'เดือน 7 (ก.ค.)', data: vehicle.m7, isNew: false, theme: 'default' },
+                { label: 'เดือน 8 (ส.ค.)', data: vehicle.m8, isNew: false, theme: 'default' },
+                { label: 'เดือน 9 (ก.ย.)', data: vehicle.m9 || { dist: 0, fuel: 0, cost: 0, jobs: 0 }, isNew: true, theme: 'emerald' },
+                { label: 'เดือน 10 (ต.ค.)', data: vehicle.m10 || { dist: 0, fuel: 0, cost: 0, jobs: 0 }, isNew: true, theme: 'purple' },
+                { label: 'เดือน 11 (พ.ย.)', data: vehicle.m11 || { dist: 0, fuel: 0, cost: 0, jobs: 0 }, isNew: true, theme: 'pink' }
+              ].map((m, idx) => {
+                const isEmpty = !m.data.cost && !m.data.dist && !m.data.jobs;
+                let cardClass = 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700';
+                let titleColor = 'text-slate-500 dark:text-slate-400';
+                let badgeClass = '';
+
+                if (m.theme === 'emerald') {
+                  cardClass = 'bg-emerald-50/50 dark:bg-emerald-950/20 border-emerald-300 dark:border-emerald-800';
+                  titleColor = 'text-emerald-700 dark:text-emerald-300 font-bold';
+                  badgeClass = 'bg-emerald-200 dark:bg-emerald-900/60 text-emerald-800 dark:text-emerald-200';
+                } else if (m.theme === 'purple') {
+                  cardClass = 'bg-purple-50/50 dark:bg-purple-950/20 border-purple-300 dark:border-purple-800';
+                  titleColor = 'text-purple-700 dark:text-purple-300 font-bold';
+                  badgeClass = 'bg-purple-200 dark:bg-purple-900/60 text-purple-800 dark:text-purple-200';
+                } else if (m.theme === 'pink') {
+                  cardClass = 'bg-pink-50/50 dark:bg-pink-950/20 border-pink-300 dark:border-pink-800';
+                  titleColor = 'text-pink-700 dark:text-pink-300 font-bold';
+                  badgeClass = 'bg-pink-200 dark:bg-pink-900/60 text-pink-800 dark:text-pink-200';
+                }
+
+                return (
+                  <div
+                    key={idx}
+                    className={`p-3 rounded-lg border flex flex-col justify-between ${cardClass}`}
+                  >
+                    <div className="flex items-center justify-between border-b pb-1 dark:border-slate-700">
+                      <p className={`text-xs ${titleColor}`}>
+                        {m.label}
+                      </p>
+                      {m.isNew && isEmpty && (
+                        <span className={`text-[9px] px-1.5 py-0.2 rounded font-bold ${badgeClass}`}>
+                          รอคีย์ข้อมูล
+                        </span>
+                      )}
                     </div>
-                    <div className="flex justify-between items-center">
-                      <span className="text-slate-500 flex items-center gap-1">
-                        <Briefcase className="w-3 h-3 text-blue-500" /> งาน:
-                      </span>
-                      <span className="font-bold text-blue-600 dark:text-blue-400">
-                        {m.data.jobs} งาน
-                      </span>
-                    </div>
-                    <div className="flex justify-between items-center text-[11px] text-slate-400">
-                      <span>ระยะทาง:</span>
-                      <span>{numFormat(m.data.dist, 0, 0)} กม.</span>
+                    <div className="space-y-1.5 my-2 text-xs">
+                      <div className="flex justify-between items-center">
+                        <span className="text-slate-500 flex items-center gap-1">
+                          <Fuel className="w-3 h-3 text-red-500" /> ค่าน้ำมัน:
+                        </span>
+                        <span className={`font-bold ${isEmpty ? 'text-slate-400' : 'text-red-600 dark:text-red-400'}`}>
+                          {isEmpty ? '-' : `${numFormat(m.data.cost)} บ.`}
+                        </span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="text-slate-500 flex items-center gap-1">
+                          <Briefcase className="w-3 h-3 text-blue-500" /> งาน:
+                        </span>
+                        <span className={`font-bold ${isEmpty ? 'text-slate-400' : 'text-blue-600 dark:text-blue-400'}`}>
+                          {isEmpty ? '-' : `${m.data.jobs} งาน`}
+                        </span>
+                      </div>
+                      <div className="flex justify-between items-center text-[11px] text-slate-400">
+                        <span>ระยะทาง:</span>
+                        <span>{isEmpty ? '-' : `${numFormat(m.data.dist, 0, 0)} กม.`}</span>
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
 

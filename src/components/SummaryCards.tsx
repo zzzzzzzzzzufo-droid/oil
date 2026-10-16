@@ -4,7 +4,8 @@ import {
   Flame,
   Sparkles,
   TrendingUp,
-  LineChart
+  LineChart,
+  CheckCircle2
 } from 'lucide-react';
 import { Vehicle } from '../types';
 
@@ -24,12 +25,19 @@ export const SummaryCards: React.FC<SummaryCardsProps> = ({ vehicles }) => {
   const totalCashflow = vehicles.reduce((sum, v) => sum + (v.estimatedPrice || 0), 0);
   const cashflowMillion = (totalCashflow / 1000000).toFixed(2);
 
-  // Predicted September Fuel: sum of August fuel + trend
+  // Check if New Months (Sep 9, Oct 10, Nov 11) have actual data entered
+  const septActualCost = vehicles.reduce((sum, v) => sum + (v.m9?.cost || 0), 0);
+  const octActualCost = vehicles.reduce((sum, v) => sum + (v.m10?.cost || 0), 0);
+  const novActualCost = vehicles.reduce((sum, v) => sum + (v.m11?.cost || 0), 0);
+  const newMonthsTotalCost = septActualCost + octActualCost + novActualCost;
+  const newMonthsCostK = Math.round(newMonthsTotalCost / 1000);
+
+  // Predicted Monthly Fuel: based on recent actual trend (~85-90K / month)
   const augustFuelCost = vehicles.reduce((sum, v) => sum + (v.m8?.cost || 0), 0);
   const julyFuelCost = vehicles.reduce((sum, v) => sum + (v.m7?.cost || 0), 0);
   const diff = augustFuelCost - julyFuelCost;
-  const predictedSept = Math.round(augustFuelCost + (diff > 0 ? diff * 0.4 : 0));
-  const predictedSeptK = Math.round(predictedSept / 1000);
+  const predictedMonthly = Math.round(augustFuelCost + (diff > 0 ? diff * 0.3 : 0));
+  const predictedMonthlyK = Math.round(predictedMonthly / 1000);
 
   return (
     <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 md:gap-4">
@@ -86,20 +94,30 @@ export const SummaryCards: React.FC<SummaryCardsProps> = ({ vehicles }) => {
         </h3>
       </div>
 
-      {/* Predicted September Fuel */}
-      <div className="bg-gradient-to-br from-orange-500 to-red-600 rounded-xl p-4 flex flex-col shadow-md relative overflow-hidden text-white transition-all hover:shadow-lg col-span-2 lg:col-span-1">
+      {/* Months 9-11 / Q4 Fuel (Actual if entered, otherwise prediction) */}
+      <div className={`rounded-xl p-4 flex flex-col shadow-md relative overflow-hidden text-white transition-all hover:shadow-lg col-span-2 lg:col-span-1 ${
+        newMonthsTotalCost > 0
+          ? 'bg-gradient-to-br from-emerald-600 to-teal-700'
+          : 'bg-gradient-to-br from-purple-600 via-pink-600 to-orange-500'
+      }`}>
         <div className="absolute -right-3 -bottom-3 text-white/15">
           <LineChart className="w-20 h-20" />
         </div>
         <div className="flex items-center gap-2 z-10 mb-1">
-          <Sparkles className="w-4 h-4 text-amber-200" />
+          {newMonthsTotalCost > 0 ? (
+            <CheckCircle2 className="w-4 h-4 text-emerald-200" />
+          ) : (
+            <Sparkles className="w-4 h-4 text-pink-200" />
+          )}
           <p className="text-xs font-semibold text-white/95">
-            พยากรณ์ค่าน้ำมัน ก.ย.
+            {newMonthsTotalCost > 0 ? 'ค่าน้ำมัน ก.ย.-พ.ย. (จริง)' : 'พยากรณ์น้ำมัน (ก.ย.-พ.ย.)'}
           </p>
         </div>
         <h3 className="text-2xl font-extrabold z-10 text-white">
-          {predictedSeptK || 88}K{' '}
-          <span className="text-xs font-normal text-white/80">แนวโน้มสูงขึ้น</span>
+          {newMonthsTotalCost > 0 ? `${newMonthsCostK}K` : `~${predictedMonthlyK || 88}K/ด.`}{' '}
+          <span className="text-xs font-normal text-white/80">
+            {newMonthsTotalCost > 0 ? 'บันทึกแล้ว' : 'ต.ค.-พ.ย. รอคีย์'}
+          </span>
         </h3>
       </div>
     </div>

@@ -4,7 +4,7 @@
  */
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { Vehicle } from './types';
+import { Vehicle, MonthKey } from './types';
 import {
   subscribeToFleetVehicles,
   updateVehicleData,
@@ -19,6 +19,7 @@ import { SummaryCards } from './components/SummaryCards';
 import { HealthTable } from './components/HealthTable';
 import { FuelTable } from './components/FuelTable';
 import { AnalyticsSection } from './components/AnalyticsSection';
+import { MaintenancePredictor } from './components/MaintenancePredictor';
 import { CarDetailModal } from './components/CarDetailModal';
 import { EditCarModal } from './components/EditCarModal';
 import { DisposalMemoModal } from './components/DisposalMemoModal';
@@ -45,6 +46,7 @@ export default function App() {
   const [auditOpen, setAuditOpen] = useState(false);
   const [marketIntelOpen, setMarketIntelOpen] = useState(false);
   const [marketIntelVehicle, setMarketIntelVehicle] = useState<Vehicle | null>(null);
+  const [selectedMonths, setSelectedMonths] = useState<MonthKey[]>(['m6', 'm7', 'm8']); // Default 3 months as requested
 
   // Network & Sync States
   const [isOnline, setIsOnline] = useState<boolean>(navigator.onLine);
@@ -244,6 +246,9 @@ export default function App() {
           <FuelTable
             vehicles={vehicles}
             onSelectCar={(car) => setSelectedCar(car)}
+            onEditCar={(car) => setEditingCar(car)}
+            selectedMonths={selectedMonths}
+            onChangeSelectedMonths={setSelectedMonths}
           />
 
           {/* Table 3: Executive Analytics & Multi-dimensional Ranking Suite */}
@@ -256,6 +261,16 @@ export default function App() {
               setMarketIntelVehicle(car || null);
               setMarketIntelOpen(true);
             }}
+            selectedMonths={selectedMonths}
+          />
+
+          {/* Table 4: Maintenance Predictor & Service Forecaster */}
+          <MaintenancePredictor
+            vehicles={vehicles}
+            onSelectCar={(car) => setSelectedCar(car)}
+            onEditCar={(car) => setEditingCar(car)}
+            onOpenMemo={() => setMemoOpen(true)}
+            addToast={addToast}
           />
 
           {/* Enterprise Footer */}

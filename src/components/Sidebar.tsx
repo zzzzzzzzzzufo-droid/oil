@@ -6,7 +6,8 @@ import {
   X,
   ShieldCheck,
   Fuel,
-  Car
+  Car,
+  Wrench
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -91,6 +92,15 @@ export const Sidebar: React.FC<SidebarProps> = ({
             >
               <BarChart3 className="w-5 h-5 text-slate-400 group-hover:text-blue-500" />
               <span>วิเคราะห์จัดอันดับ 6 มิติ</span>
+            </a>
+
+            <a
+              href="#maintenanceSection"
+              onClick={onClose}
+              className="flex items-center gap-3 px-4 py-3 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-purple-600 rounded-xl font-medium transition-colors"
+            >
+              <Wrench className="w-5 h-5 text-slate-400 group-hover:text-purple-500" />
+              <span>พยากรณ์ซ่อมบำรุง (Predictor)</span>
             </a>
 
             <button

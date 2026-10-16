@@ -53,6 +53,21 @@ export const EditCarModal: React.FC<EditCarModalProps> = ({
   const [m8Cost, setM8Cost] = useState(vehicle.m8.cost);
   const [m8Jobs, setM8Jobs] = useState(vehicle.m8.jobs);
 
+  const [m9Dist, setM9Dist] = useState(vehicle.m9?.dist || 0);
+  const [m9Fuel, setM9Fuel] = useState(vehicle.m9?.fuel || 0);
+  const [m9Cost, setM9Cost] = useState(vehicle.m9?.cost || 0);
+  const [m9Jobs, setM9Jobs] = useState(vehicle.m9?.jobs || 0);
+
+  const [m10Dist, setM10Dist] = useState(vehicle.m10?.dist || 0);
+  const [m10Fuel, setM10Fuel] = useState(vehicle.m10?.fuel || 0);
+  const [m10Cost, setM10Cost] = useState(vehicle.m10?.cost || 0);
+  const [m10Jobs, setM10Jobs] = useState(vehicle.m10?.jobs || 0);
+
+  const [m11Dist, setM11Dist] = useState(vehicle.m11?.dist || 0);
+  const [m11Fuel, setM11Fuel] = useState(vehicle.m11?.fuel || 0);
+  const [m11Cost, setM11Cost] = useState(vehicle.m11?.cost || 0);
+  const [m11Jobs, setM11Jobs] = useState(vehicle.m11?.jobs || 0);
+
   const [editReason, setEditReason] = useState('บันทึกข้อมูลย้อนหลัง / ปรับปรุงข้อมูลจริง');
   const [saving, setSaving] = useState(false);
 
@@ -88,6 +103,24 @@ export const EditCarModal: React.FC<EditCarModalProps> = ({
           fuel: Number(m8Fuel),
           cost: Number(m8Cost),
           jobs: Number(m8Jobs)
+        },
+        m9: {
+          dist: Number(m9Dist) || 0,
+          fuel: Number(m9Fuel) || 0,
+          cost: Number(m9Cost) || 0,
+          jobs: Number(m9Jobs) || 0
+        },
+        m10: {
+          dist: Number(m10Dist) || 0,
+          fuel: Number(m10Fuel) || 0,
+          cost: Number(m10Cost) || 0,
+          jobs: Number(m10Jobs) || 0
+        },
+        m11: {
+          dist: Number(m11Dist) || 0,
+          fuel: Number(m11Fuel) || 0,
+          cost: Number(m11Cost) || 0,
+          jobs: Number(m11Jobs) || 0
         }
       };
 
@@ -403,12 +436,193 @@ export const EditCarModal: React.FC<EditCarModalProps> = ({
                 </div>
               </div>
             </div>
+
+            {/* M9 (New Month 9) */}
+            <div className="p-3 bg-emerald-50/60 dark:bg-emerald-950/20 rounded-xl border-2 border-emerald-300 dark:border-emerald-800">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-xs font-bold text-emerald-800 dark:text-emerald-300 flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                  เดือน 9 (ก.ย. 69) - บันทึกข้อมูลใหม่
+                </span>
+                <span className="text-[10px] bg-emerald-200 dark:bg-emerald-900/60 text-emerald-800 dark:text-emerald-200 px-2 py-0.5 rounded font-semibold">
+                  กรอกข้อมูลเดือน 9
+                </span>
+              </div>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                <div>
+                  <label className="text-[11px] text-slate-500">ระยะทาง (กม.)</label>
+                  <input
+                    type="number"
+                    step="any"
+                    value={m9Dist || ''}
+                    placeholder="0"
+                    onChange={(e) => setM9Dist(Number(e.target.value))}
+                    className="w-full text-xs p-1.5 rounded border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800"
+                  />
+                </div>
+                <div>
+                  <label className="text-[11px] text-slate-500">น้ำมัน (ลิตร)</label>
+                  <input
+                    type="number"
+                    step="any"
+                    value={m9Fuel || ''}
+                    placeholder="0"
+                    onChange={(e) => setM9Fuel(Number(e.target.value))}
+                    className="w-full text-xs p-1.5 rounded border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800"
+                  />
+                </div>
+                <div>
+                  <label className="text-[11px] text-slate-500">ค่าน้ำมัน (บาท)</label>
+                  <input
+                    type="number"
+                    step="any"
+                    value={m9Cost || ''}
+                    placeholder="0"
+                    onChange={(e) => setM9Cost(Number(e.target.value))}
+                    className="w-full text-xs p-1.5 rounded border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 font-semibold text-emerald-700 dark:text-emerald-300"
+                  />
+                </div>
+                <div>
+                  <label className="text-[11px] text-slate-500 font-bold text-emerald-700 dark:text-emerald-300">
+                    จำนวนงาน (Jobs)
+                  </label>
+                  <input
+                    type="number"
+                    value={m9Jobs || ''}
+                    placeholder="0"
+                    onChange={(e) => setM9Jobs(Number(e.target.value))}
+                    className="w-full text-xs p-1.5 rounded border-2 border-emerald-400 dark:border-emerald-500 bg-white dark:bg-slate-800 font-bold text-emerald-700"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* M10 (New Month 10 - ต.ค. 69) */}
+            <div className="p-3 bg-purple-50/60 dark:bg-purple-950/20 rounded-xl border-2 border-purple-300 dark:border-purple-800">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-xs font-bold text-purple-800 dark:text-purple-300 flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-purple-500 animate-pulse" />
+                  เดือน 10 (ต.ค. 69) - บันทึกข้อมูลใหม่
+                </span>
+                <span className="text-[10px] bg-purple-200 dark:bg-purple-900/60 text-purple-800 dark:text-purple-200 px-2 py-0.5 rounded font-semibold">
+                  กรอกข้อมูลเดือน 10
+                </span>
+              </div>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                <div>
+                  <label className="text-[11px] text-slate-500">ระยะทาง (กม.)</label>
+                  <input
+                    type="number"
+                    step="any"
+                    value={m10Dist || ''}
+                    placeholder="0"
+                    onChange={(e) => setM10Dist(Number(e.target.value))}
+                    className="w-full text-xs p-1.5 rounded border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800"
+                  />
+                </div>
+                <div>
+                  <label className="text-[11px] text-slate-500">น้ำมัน (ลิตร)</label>
+                  <input
+                    type="number"
+                    step="any"
+                    value={m10Fuel || ''}
+                    placeholder="0"
+                    onChange={(e) => setM10Fuel(Number(e.target.value))}
+                    className="w-full text-xs p-1.5 rounded border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800"
+                  />
+                </div>
+                <div>
+                  <label className="text-[11px] text-slate-500">ค่าน้ำมัน (บาท)</label>
+                  <input
+                    type="number"
+                    step="any"
+                    value={m10Cost || ''}
+                    placeholder="0"
+                    onChange={(e) => setM10Cost(Number(e.target.value))}
+                    className="w-full text-xs p-1.5 rounded border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 font-semibold text-purple-700 dark:text-purple-300"
+                  />
+                </div>
+                <div>
+                  <label className="text-[11px] text-slate-500 font-bold text-purple-700 dark:text-purple-300">
+                    จำนวนงาน (Jobs)
+                  </label>
+                  <input
+                    type="number"
+                    value={m10Jobs || ''}
+                    placeholder="0"
+                    onChange={(e) => setM10Jobs(Number(e.target.value))}
+                    className="w-full text-xs p-1.5 rounded border-2 border-purple-400 dark:border-purple-500 bg-white dark:bg-slate-800 font-bold text-purple-700"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* M11 (New Month 11 - พ.ย. 69) */}
+            <div className="p-3 bg-pink-50/60 dark:bg-pink-950/20 rounded-xl border-2 border-pink-300 dark:border-pink-800">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-xs font-bold text-pink-800 dark:text-pink-300 flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-pink-500 animate-pulse" />
+                  เดือน 11 (พ.ย. 69) - บันทึกข้อมูลใหม่
+                </span>
+                <span className="text-[10px] bg-pink-200 dark:bg-pink-900/60 text-pink-800 dark:text-pink-200 px-2 py-0.5 rounded font-semibold">
+                  กรอกข้อมูลเดือน 11
+                </span>
+              </div>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                <div>
+                  <label className="text-[11px] text-slate-500">ระยะทาง (กม.)</label>
+                  <input
+                    type="number"
+                    step="any"
+                    value={m11Dist || ''}
+                    placeholder="0"
+                    onChange={(e) => setM11Dist(Number(e.target.value))}
+                    className="w-full text-xs p-1.5 rounded border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800"
+                  />
+                </div>
+                <div>
+                  <label className="text-[11px] text-slate-500">น้ำมัน (ลิตร)</label>
+                  <input
+                    type="number"
+                    step="any"
+                    value={m11Fuel || ''}
+                    placeholder="0"
+                    onChange={(e) => setM11Fuel(Number(e.target.value))}
+                    className="w-full text-xs p-1.5 rounded border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800"
+                  />
+                </div>
+                <div>
+                  <label className="text-[11px] text-slate-500">ค่าน้ำมัน (บาท)</label>
+                  <input
+                    type="number"
+                    step="any"
+                    value={m11Cost || ''}
+                    placeholder="0"
+                    onChange={(e) => setM11Cost(Number(e.target.value))}
+                    className="w-full text-xs p-1.5 rounded border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 font-semibold text-pink-700 dark:text-pink-300"
+                  />
+                </div>
+                <div>
+                  <label className="text-[11px] text-slate-500 font-bold text-pink-700 dark:text-pink-300">
+                    จำนวนงาน (Jobs)
+                  </label>
+                  <input
+                    type="number"
+                    value={m11Jobs || ''}
+                    placeholder="0"
+                    onChange={(e) => setM11Jobs(Number(e.target.value))}
+                    className="w-full text-xs p-1.5 rounded border-2 border-pink-400 dark:border-pink-500 bg-white dark:bg-slate-800 font-bold text-pink-700"
+                  />
+                </div>
+              </div>
+            </div>
+
             {/* Live Calculation Preview */}
             {(() => {
-              const liveDist = (Number(m6Dist) || 0) + (Number(m7Dist) || 0) + (Number(m8Dist) || 0);
-              const liveFuel = (Number(m6Fuel) || 0) + (Number(m7Fuel) || 0) + (Number(m8Fuel) || 0);
-              const liveCost = (Number(m6Cost) || 0) + (Number(m7Cost) || 0) + (Number(m8Cost) || 0);
-              const liveJobs = (Number(m6Jobs) || 0) + (Number(m7Jobs) || 0) + (Number(m8Jobs) || 0);
+              const liveDist = (Number(m6Dist) || 0) + (Number(m7Dist) || 0) + (Number(m8Dist) || 0) + (Number(m9Dist) || 0) + (Number(m10Dist) || 0) + (Number(m11Dist) || 0);
+              const liveFuel = (Number(m6Fuel) || 0) + (Number(m7Fuel) || 0) + (Number(m8Fuel) || 0) + (Number(m9Fuel) || 0) + (Number(m10Fuel) || 0) + (Number(m11Fuel) || 0);
+              const liveCost = (Number(m6Cost) || 0) + (Number(m7Cost) || 0) + (Number(m8Cost) || 0) + (Number(m9Cost) || 0) + (Number(m10Cost) || 0) + (Number(m11Cost) || 0);
+              const liveJobs = (Number(m6Jobs) || 0) + (Number(m7Jobs) || 0) + (Number(m8Jobs) || 0) + (Number(m9Jobs) || 0) + (Number(m10Jobs) || 0) + (Number(m11Jobs) || 0);
               const liveEff = liveFuel > 0 ? liveDist / liveFuel : 0;
               const liveCkm = liveDist > 0 ? liveCost / liveDist : 0;
               const liveCjob = liveJobs > 0 ? liveCost / liveJobs : 0;
@@ -416,7 +630,7 @@ export const EditCarModal: React.FC<EditCarModalProps> = ({
               return (
                 <div className="p-3.5 bg-blue-50/70 dark:bg-blue-950/30 rounded-xl border border-blue-200 dark:border-blue-800 text-xs">
                   <div className="font-bold text-blue-800 dark:text-blue-300 mb-2 flex items-center justify-between">
-                    <span>⚡ สรุปผลคำนวณสด 3 เดือน (Live Calculated Preview):</span>
+                    <span>⚡ สรุปผลคำนวณสด (Live Calculated Preview):</span>
                     {liveEff >= 13 ? (
                       <span className="text-emerald-600 font-bold">เกณฑ์ดีมาก</span>
                     ) : liveEff >= 11 ? (

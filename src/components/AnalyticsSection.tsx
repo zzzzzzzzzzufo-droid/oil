@@ -25,7 +25,7 @@ import {
   FileCheck2,
   ExternalLink
 } from 'lucide-react';
-import { Vehicle, PeriodFilter, MetricFilter } from '../types';
+import { Vehicle, PeriodFilter, MetricFilter, MonthKey, MONTH_CONFIG } from '../types';
 import { numFormat } from '../utils/calculations';
 import { STRATEGIC_PLANS, ActionSolution } from '../utils/strategicSolutions';
 
@@ -35,6 +35,7 @@ interface AnalyticsSectionProps {
   onEditCar?: (vehicle: Vehicle) => void;
   onOpenMemo?: () => void;
   onOpenMarketIntel?: (vehicle?: Vehicle) => void;
+  selectedMonths?: MonthKey[];
 }
 
 export const AnalyticsSection: React.FC<AnalyticsSectionProps> = ({
@@ -42,12 +43,36 @@ export const AnalyticsSection: React.FC<AnalyticsSectionProps> = ({
   onSelectCar,
   onEditCar,
   onOpenMemo,
-  onOpenMarketIntel
+  onOpenMarketIntel,
+  selectedMonths
 }) => {
+  const activeMonths: MonthKey[] = selectedMonths || ['m6', 'm7', 'm8'];
   const [period, setPeriod] = useState<PeriodFilter>('total');
   const [metric, setMetric] = useState<MetricFilter>('cost_km_desc'); // default to the most critical topic as requested
   const [hoveredCar, setHoveredCar] = useState<{ plate: string; value: number; unit: string } | null>(null);
   const [categoryFilter, setCategoryFilter] = useState<'all' | 'technical' | 'management' | 'finance' | 'policy'>('all');
+
+  // Helpers to get metrics for period
+  const getPeriodCost = (v: Vehicle, p: PeriodFilter) => {
+    if (p === 'total') {
+      return activeMonths.reduce((sum, m) => sum + (v[m]?.cost || 0), 0);
+    }
+    return v[p]?.cost || 0;
+  };
+
+  const getPeriodDist = (v: Vehicle, p: PeriodFilter) => {
+    if (p === 'total') {
+      return activeMonths.reduce((sum, m) => sum + (v[m]?.dist || 0), 0);
+    }
+    return v[p]?.dist || 0;
+  };
+
+  const getPeriodJobs = (v: Vehicle, p: PeriodFilter) => {
+    if (p === 'total') {
+      return activeMonths.reduce((sum, m) => sum + (v[m]?.jobs || 0), 0);
+    }
+    return v[p]?.jobs || 0;
+  };
 
   // Compute sorted items based on metric and period
   const { title, unit, sortedData, maxValue } = useMemo(() => {
@@ -60,10 +85,7 @@ export const AnalyticsSection: React.FC<AnalyticsSectionProps> = ({
       case 'jobs_desc':
         t = 'อันดับรถที่วิ่งงานเยอะที่สุด';
         u = 'งาน';
-        extractor = (v) =>
-          period === 'total'
-            ? v.m6.jobs + v.m7.jobs + v.m8.jobs
-            : v[period]?.jobs || 0;
+        extractor = (v) => getPeriodJobs(v, period);
         comparator = (a, b) => extractor(b) - extractor(a);
         break;
 
@@ -71,14 +93,8 @@ export const AnalyticsSection: React.FC<AnalyticsSectionProps> = ({
         t = 'อันดับรถวิ่งไม่คุ้มค่า (กินน้ำมันสูงสุด)';
         u = 'บ./กม.';
         extractor = (v) => {
-          const cost =
-            period === 'total'
-              ? v.m6.cost + v.m7.cost + v.m8.cost
-              : v[period]?.cost || 0;
-          const dist =
-            period === 'total'
-              ? v.m6.dist + v.m7.dist + v.m8.dist
-              : v[period]?.dist || 0;
+          const cost = getPeriodCost(v, period);
+          const dist = getPeriodDist(v, period);
           return dist > 0 ? cost / dist : 0;
         };
         comparator = (a, b) => extractor(b) - extractor(a);
@@ -87,10 +103,7 @@ export const AnalyticsSection: React.FC<AnalyticsSectionProps> = ({
       case 'jobs_asc':
         t = 'อันดับรถที่จอดแช่ (งานน้อยที่สุด)';
         u = 'งาน';
-        extractor = (v) =>
-          period === 'total'
-            ? v.m6.jobs + v.m7.jobs + v.m8.jobs
-            : v[period]?.jobs || 0;
+        extractor = (v) => getPeriodJobs(v, period);
         comparator = (a, b) => extractor(a) - extractor(b);
         break;
 
@@ -98,14 +111,8 @@ export const AnalyticsSection: React.FC<AnalyticsSectionProps> = ({
         t = 'อันดับรถต้นทุนต่องานแพงที่สุด';
         u = 'บ./งาน';
         extractor = (v) => {
-          const cost =
-            period === 'total'
-              ? v.m6.cost + v.m7.cost + v.m8.cost
-              : v[period]?.cost || 0;
-          const jobs =
-            period === 'total'
-              ? v.m6.jobs + v.m7.jobs + v.m8.jobs
-              : v[period]?.jobs || 0;
+          const cost = getPeriodCost(v, period);
+          const jobs = getPeriodJobs(v, period);
           return jobs > 0 ? cost / jobs : 0;
         };
         comparator = (a, b) => extractor(b) - extractor(a);
@@ -115,13 +122,10 @@ export const AnalyticsSection: React.FC<AnalyticsSectionProps> = ({
         t = 'อันดับรถใช้วงเงินเติมน้ำมันเต็มเพดาน';
         u = '%';
         extractor = (v) => {
-          let lim = v.limit;
+          let lim = v.limit || 0;
           if (lim === 0) return 0;
-          if (period === 'total') lim *= 3;
-          const cost =
-            period === 'total'
-              ? v.m6.cost + v.m7.cost + v.m8.cost
-              : v[period]?.cost || 0;
+          if (period === 'total') lim *= activeMonths.length;
+          const cost = getPeriodCost(v, period);
           return (cost / lim) * 100;
         };
         comparator = (a, b) => extractor(b) - extractor(a);
@@ -130,10 +134,7 @@ export const AnalyticsSection: React.FC<AnalyticsSectionProps> = ({
       case 'distance_desc':
         t = 'อันดับรถวิ่งระยะทางเยอะที่สุด';
         u = 'กม.';
-        extractor = (v) =>
-          period === 'total'
-            ? v.m6.dist + v.m7.dist + v.m8.dist
-            : v[period]?.dist || 0;
+        extractor = (v) => getPeriodDist(v, period);
         comparator = (a, b) => extractor(b) - extractor(a);
         break;
     }
@@ -151,7 +152,7 @@ export const AnalyticsSection: React.FC<AnalyticsSectionProps> = ({
       sortedData: sorted,
       maxValue: max
     };
-  }, [vehicles, metric, period]);
+  }, [vehicles, metric, period, activeMonths]);
 
   // Current strategic plan for selected metric
   const currentPlan = STRATEGIC_PLANS[metric] || STRATEGIC_PLANS.cost_km_desc;
@@ -168,10 +169,13 @@ export const AnalyticsSection: React.FC<AnalyticsSectionProps> = ({
   }, [sortedData]);
 
   const periodLabels: Record<PeriodFilter, string> = {
-    total: 'รวม 3 เดือน',
+    total: `ภาพรวม ${activeMonths.length} เดือน`,
     m6: 'เดือน 6 (มิ.ย.)',
     m7: 'เดือน 7 (ก.ค.)',
-    m8: 'เดือน 8 (ส.ค.)'
+    m8: 'เดือน 8 (ส.ค.)',
+    m9: 'เดือน 9 (ก.ย.)',
+    m10: 'เดือน 10 (ต.ค.)',
+    m11: 'เดือน 11 (พ.ย.)'
   };
 
   const getBarColor = (plan: string) => {
@@ -255,7 +259,7 @@ export const AnalyticsSection: React.FC<AnalyticsSectionProps> = ({
             <span>เลือกรอบเดือน (Period):</span>
           </div>
           <div className="flex flex-wrap gap-1.5 w-full sm:w-auto">
-            {(['total', 'm6', 'm7', 'm8'] as PeriodFilter[]).map((p) => (
+            {(['total', 'm6', 'm7', 'm8', 'm9', 'm10', 'm11'] as PeriodFilter[]).map((p) => (
               <button
                 key={p}
                 type="button"

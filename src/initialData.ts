@@ -16,6 +16,9 @@ export const INITIAL_FLEET_DATA: Omit<Vehicle, 'id'>[] = [
     m6: { dist: 0, fuel: 0, cost: 0, jobs: 20 },
     m7: { dist: 2151, fuel: 242.837, cost: 8670, jobs: 80 },
     m8: { dist: 1846, fuel: 133.029, cost: 5000, jobs: 43 },
+    m9: { dist: 0, fuel: 0, cost: 0, jobs: 0 },
+    m10: { dist: 0, fuel: 0, cost: 0, jobs: 0 },
+    m11: { dist: 0, fuel: 0, cost: 0, jobs: 0 },
     notes: "รอตัดขายเร่งด่วน P1 ลอกสติกเกอร์พร้อมโอน"
   },
   {
@@ -33,6 +36,9 @@ export const INITIAL_FLEET_DATA: Omit<Vehicle, 'id'>[] = [
     m6: { dist: 1983, fuel: 286.055, cost: 11300.10, jobs: 60 },
     m7: { dist: 3432, fuel: 320.650, cost: 11500, jobs: 63 },
     m8: { dist: 2450, fuel: 281.722, cost: 10600, jobs: 0 },
+    m9: { dist: 0, fuel: 0, cost: 0, jobs: 0 },
+    m10: { dist: 0, fuel: 0, cost: 0, jobs: 0 },
+    m11: { dist: 0, fuel: 0, cost: 0, jobs: 0 },
     notes: "วิ่งข้ามจังหวัดหนักมาก สภาพทรุดโทรม"
   },
   {
@@ -50,6 +56,9 @@ export const INITIAL_FLEET_DATA: Omit<Vehicle, 'id'>[] = [
     m6: { dist: 2176, fuel: 254.050, cost: 10000, jobs: 112 },
     m7: { dist: 3338, fuel: 277.075, cost: 9940, jobs: 127 },
     m8: { dist: 3670, fuel: 266.625, cost: 10000, jobs: 12 },
+    m9: { dist: 0, fuel: 0, cost: 0, jobs: 0 },
+    m10: { dist: 0, fuel: 0, cost: 0, jobs: 0 },
+    m11: { dist: 0, fuel: 0, cost: 0, jobs: 0 },
     notes: "ระบบแอร์ชำรุดและไมล์ใกล้ 3 แสนกิโลเมตร"
   },
   {
@@ -67,6 +76,9 @@ export const INITIAL_FLEET_DATA: Omit<Vehicle, 'id'>[] = [
     m6: { dist: 1576, fuel: 255.194, cost: 10000, jobs: 65 },
     m7: { dist: 2983, fuel: 275.309, cost: 10000, jobs: 60 },
     m8: { dist: 2171, fuel: 264.886, cost: 10000, jobs: 0 },
+    m9: { dist: 0, fuel: 0, cost: 0, jobs: 0 },
+    m10: { dist: 0, fuel: 0, cost: 0, jobs: 0 },
+    m11: { dist: 0, fuel: 0, cost: 0, jobs: 0 },
     notes: "กินน้ำมันสูง เครื่องยนต์ส่งสัญญาณเตือน"
   },
   {
@@ -84,6 +96,9 @@ export const INITIAL_FLEET_DATA: Omit<Vehicle, 'id'>[] = [
     m6: { dist: 0, fuel: 48.960, cost: 2000, jobs: 0 },
     m7: { dist: 0, fuel: 54.440, cost: 2000, jobs: 14 },
     m8: { dist: 2619, fuel: 182.830, cost: 7000, jobs: 55 },
+    m9: { dist: 0, fuel: 0, cost: 0, jobs: 0 },
+    m10: { dist: 0, fuel: 0, cost: 0, jobs: 0 },
+    m11: { dist: 0, fuel: 0, cost: 0, jobs: 0 },
     notes: "อายุใช้งาน 10 ปี เต็มพิกัดค่าเสื่อมราคา"
   },
   {
@@ -101,6 +116,9 @@ export const INITIAL_FLEET_DATA: Omit<Vehicle, 'id'>[] = [
     m6: { dist: 0, fuel: 0, cost: 0, jobs: 0 },
     m7: { dist: 0, fuel: 0, cost: 0, jobs: 0 },
     m8: { dist: 0, fuel: 0, cost: 0, jobs: 0 },
+    m9: { dist: 0, fuel: 0, cost: 0, jobs: 0 },
+    m10: { dist: 0, fuel: 0, cost: 0, jobs: 0 },
+    m11: { dist: 0, fuel: 0, cost: 0, jobs: 0 },
     notes: "เพิ่งออกจากอู่เคลมประกันภัยสีตัวถัง"
   },
   {
@@ -118,6 +136,9 @@ export const INITIAL_FLEET_DATA: Omit<Vehicle, 'id'>[] = [
     m6: { dist: 563, fuel: 106.520, cost: 4000, jobs: 81 },
     m7: { dist: 1105, fuel: 110.409, cost: 4000, jobs: 79 },
     m8: { dist: 2341, fuel: 212.782, cost: 7950, jobs: 100 },
+    m9: { dist: 0, fuel: 0, cost: 0, jobs: 0 },
+    m10: { dist: 0, fuel: 0, cost: 0, jobs: 0 },
+    m11: { dist: 0, fuel: 0, cost: 0, jobs: 0 },
     notes: "ทยอยขายตามรอบ P2"
   },
   {
@@ -135,6 +156,9 @@ export const INITIAL_FLEET_DATA: Omit<Vehicle, 'id'>[] = [
     m6: { dist: 1021, fuel: 151.820, cost: 6000, jobs: 30 },
     m7: { dist: 4046, fuel: 329.595, cost: 12000, jobs: 19 },
     m8: { dist: 3611, fuel: 317.611, cost: 12000, jobs: 0 },
+    m9: { dist: 0, fuel: 0, cost: 0, jobs: 0 },
+    m10: { dist: 0, fuel: 0, cost: 0, jobs: 0 },
+    m11: { dist: 0, fuel: 0, cost: 0, jobs: 0 },
     notes: "ต้นทุนค่าน้ำมันต่องานค่อนข้างสูง"
   },
   {
@@ -152,6 +176,9 @@ export const INITIAL_FLEET_DATA: Omit<Vehicle, 'id'>[] = [
     m6: { dist: 1826, fuel: 201.245, cost: 8000, jobs: 0 },
     m7: { dist: 2503, fuel: 221.756, cost: 8000, jobs: 0 },
     m8: { dist: 1493, fuel: 105.229, cost: 4000, jobs: 0 },
+    m9: { dist: 0, fuel: 0, cost: 0, jobs: 0 },
+    m10: { dist: 0, fuel: 0, cost: 0, jobs: 0 },
+    m11: { dist: 0, fuel: 0, cost: 0, jobs: 0 },
     notes: "เตรียมสลับรถคันใหม่เพื่อจัดขาย"
   },
   {
@@ -169,6 +196,9 @@ export const INITIAL_FLEET_DATA: Omit<Vehicle, 'id'>[] = [
     m6: { dist: 2041, fuel: 255.294, cost: 10000, jobs: 86 },
     m7: { dist: 2507, fuel: 251.843, cost: 9000, jobs: 77 },
     m8: { dist: 2016, fuel: 213.149, cost: 8000, jobs: 76 },
+    m9: { dist: 0, fuel: 0, cost: 0, jobs: 0 },
+    m10: { dist: 0, fuel: 0, cost: 0, jobs: 0 },
+    m11: { dist: 0, fuel: 0, cost: 0, jobs: 0 },
     notes: "จัดจำหน่ายในเฟส 2"
   },
   {
@@ -186,6 +216,9 @@ export const INITIAL_FLEET_DATA: Omit<Vehicle, 'id'>[] = [
     m6: { dist: 1259, fuel: 137.309, cost: 5500, jobs: 0 },
     m7: { dist: 1822, fuel: 98.338, cost: 3500, jobs: 0 },
     m8: { dist: 1252, fuel: 118.596, cost: 4500, jobs: 0 },
+    m9: { dist: 0, fuel: 0, cost: 0, jobs: 0 },
+    m10: { dist: 0, fuel: 0, cost: 0, jobs: 0 },
+    m11: { dist: 0, fuel: 0, cost: 0, jobs: 0 },
     notes: "ประจำสาขาชะอำ อายุครบ 10 ปี"
   },
   {
@@ -203,6 +236,9 @@ export const INITIAL_FLEET_DATA: Omit<Vehicle, 'id'>[] = [
     m6: { dist: 0, fuel: 0, cost: 0, jobs: 0 },
     m7: { dist: 0, fuel: 0, cost: 0, jobs: 0 },
     m8: { dist: 0, fuel: 0, cost: 0, jobs: 0 },
+    m9: { dist: 0, fuel: 0, cost: 0, jobs: 0 },
+    m10: { dist: 0, fuel: 0, cost: 0, jobs: 0 },
+    m11: { dist: 0, fuel: 0, cost: 0, jobs: 0 },
     notes: "ขออนุมัติลอกและติดสติ๊กเกอร์ภาพลักษณ์องค์กรใหม่"
   },
   {
@@ -220,6 +256,9 @@ export const INITIAL_FLEET_DATA: Omit<Vehicle, 'id'>[] = [
     m6: { dist: 2471, fuel: 259.467, cost: 10000, jobs: 87 },
     m7: { dist: 1605, fuel: 136.282, cost: 5000, jobs: 53 },
     m8: { dist: 0, fuel: 0, cost: 0, jobs: 10 },
+    m9: { dist: 0, fuel: 0, cost: 0, jobs: 0 },
+    m10: { dist: 0, fuel: 0, cost: 0, jobs: 0 },
+    m11: { dist: 0, fuel: 0, cost: 0, jobs: 0 },
     notes: "ไมล์น้อยมาก เครื่องยังสมบูรณ์ รีแบรนด์ใช้งานต่อ"
   },
   {
@@ -237,6 +276,9 @@ export const INITIAL_FLEET_DATA: Omit<Vehicle, 'id'>[] = [
     m6: { dist: 0, fuel: 0, cost: 0, jobs: 105 },
     m7: { dist: 0, fuel: 0, cost: 0, jobs: 83 },
     m8: { dist: 1620, fuel: 211.699, cost: 8000, jobs: 0 },
+    m9: { dist: 0, fuel: 0, cost: 0, jobs: 0 },
+    m10: { dist: 0, fuel: 0, cost: 0, jobs: 0 },
+    m11: { dist: 0, fuel: 0, cost: 0, jobs: 0 },
     notes: "รถสภาพดีเยี่ยม อายุน้อย ไมล์ต่ำ"
   },
   {
@@ -254,6 +296,9 @@ export const INITIAL_FLEET_DATA: Omit<Vehicle, 'id'>[] = [
     m6: { dist: 0, fuel: 13.315, cost: 500, jobs: 0 },
     m7: { dist: 0, fuel: 0, cost: 0, jobs: 0 },
     m8: { dist: 1092, fuel: 66.195, cost: 2500, jobs: 0 },
+    m9: { dist: 0, fuel: 0, cost: 0, jobs: 0 },
+    m10: { dist: 0, fuel: 0, cost: 0, jobs: 0 },
+    m11: { dist: 0, fuel: 0, cost: 0, jobs: 0 },
     notes: "สภาพสมบูรณ์มาก ดึงรอบงานบริการเพิ่ม"
   },
   {
@@ -271,6 +316,9 @@ export const INITIAL_FLEET_DATA: Omit<Vehicle, 'id'>[] = [
     m6: { dist: 2471, fuel: 259.467, cost: 10000, jobs: 0 },
     m7: { dist: 1605, fuel: 136.282, cost: 5000, jobs: 0 },
     m8: { dist: 0, fuel: 0, cost: 0, jobs: 0 },
+    m9: { dist: 0, fuel: 0, cost: 0, jobs: 0 },
+    m10: { dist: 0, fuel: 0, cost: 0, jobs: 0 },
+    m11: { dist: 0, fuel: 0, cost: 0, jobs: 0 },
     notes: "ไมล์น้อยที่สุดในฟลีท เหมาะทำ Mobile Billboard"
   }
 ];

@@ -98,8 +98,8 @@ export const DisposalMemoModal: React.FC<DisposalMemoModalProps> = ({
           </thead>
           <tbody>
             {urgentCars.map((car, idx) => {
-              const totalDist = car.m6.dist + car.m7.dist + car.m8.dist;
-              const totalFuel = car.m6.fuel + car.m7.fuel + car.m8.fuel;
+              const totalDist = (car.m6.dist || 0) + (car.m7.dist || 0) + (car.m8.dist || 0) + (car.m9?.dist || 0);
+              const totalFuel = (car.m6.fuel || 0) + (car.m7.fuel || 0) + (car.m8.fuel || 0) + (car.m9?.fuel || 0);
               const eff = totalFuel > 0 ? (totalDist / totalFuel).toFixed(2) : '-';
               return (
                 <tr key={car.id || idx}>
