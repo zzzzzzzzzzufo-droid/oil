@@ -11,7 +11,8 @@ import {
   CheckCircle2,
   Cloud,
   History,
-  Sparkles
+  Sparkles,
+  Users
 } from 'lucide-react';
 
 interface HeaderProps {
@@ -23,6 +24,7 @@ interface HeaderProps {
   onOpenSupport: () => void;
   onOpenAudit?: () => void;
   onOpenMarketIntel?: () => void;
+  onOpenDriverRoster?: () => void;
   onResetData: () => void;
   isOnline: boolean;
   syncStatus: 'synced' | 'syncing' | 'offline';
@@ -37,6 +39,7 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenSupport,
   onOpenAudit,
   onOpenMarketIntel,
+  onOpenDriverRoster,
   onResetData,
   isOnline,
   syncStatus
@@ -113,6 +116,18 @@ export const Header: React.FC<HeaderProps> = ({
           >
             <History className="w-3.5 h-3.5 text-purple-600 dark:text-purple-400" />
             <span className="hidden lg:inline">ประวัติแก้ไข</span>
+          </button>
+        )}
+
+        {/* Driver Roster Master Button */}
+        {onOpenDriverRoster && (
+          <button
+            onClick={onOpenDriverRoster}
+            className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-semibold text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/40 hover:bg-emerald-100 dark:hover:bg-emerald-900/40 rounded-lg transition-colors border border-emerald-200 dark:border-emerald-800"
+            title="เปิดทำเนียบคนขับประจำเดือนของฟลีท (Driver Roster)"
+          >
+            <Users className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+            <span className="hidden sm:inline">ทำเนียบคนขับ</span>
           </button>
         )}
 

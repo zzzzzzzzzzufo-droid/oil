@@ -7,7 +7,8 @@ import {
   ShieldCheck,
   Fuel,
   Car,
-  Wrench
+  Wrench,
+  Users
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -15,13 +16,15 @@ interface SidebarProps {
   onClose: () => void;
   onOpenMemo: () => void;
   onOpenSupport: () => void;
+  onOpenDriverRoster?: () => void;
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({
   isOpen,
   onClose,
   onOpenMemo,
-  onOpenSupport
+  onOpenSupport,
+  onOpenDriverRoster
 }) => {
   return (
     <>
@@ -102,6 +105,19 @@ export const Sidebar: React.FC<SidebarProps> = ({
               <Wrench className="w-5 h-5 text-slate-400 group-hover:text-purple-500" />
               <span>พยากรณ์ซ่อมบำรุง (Predictor)</span>
             </a>
+
+            {onOpenDriverRoster && (
+              <button
+                onClick={() => {
+                  onClose();
+                  onOpenDriverRoster();
+                }}
+                className="w-full flex items-center gap-3 px-4 py-3 text-slate-600 dark:text-slate-300 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 hover:text-emerald-600 rounded-xl font-medium transition-colors text-left"
+              >
+                <Users className="w-5 h-5 text-emerald-500" />
+                <span>ทำเนียบคนขับประจำเดือน</span>
+              </button>
+            )}
 
             <button
               onClick={() => {

@@ -9,7 +9,8 @@ import {
   Fuel,
   Briefcase,
   Route,
-  Banknote
+  Banknote,
+  Users
 } from 'lucide-react';
 import { Vehicle, VehiclePlan } from '../types';
 
@@ -68,8 +69,79 @@ export const EditCarModal: React.FC<EditCarModalProps> = ({
   const [m11Cost, setM11Cost] = useState(vehicle.m11?.cost || 0);
   const [m11Jobs, setM11Jobs] = useState(vehicle.m11?.jobs || 0);
 
+  // Driver arrays per month (up to 3 drivers per vehicle per month)
+  const getInitDrivers = (d?: string[]) => [d?.[0] || '', d?.[1] || '', d?.[2] || ''];
+  const [m6Drivers, setM6Drivers] = useState<string[]>(() => getInitDrivers(vehicle.m6?.drivers));
+  const [m7Drivers, setM7Drivers] = useState<string[]>(() => getInitDrivers(vehicle.m7?.drivers));
+  const [m8Drivers, setM8Drivers] = useState<string[]>(() => getInitDrivers(vehicle.m8?.drivers));
+  const [m9Drivers, setM9Drivers] = useState<string[]>(() => getInitDrivers(vehicle.m9?.drivers));
+  const [m10Drivers, setM10Drivers] = useState<string[]>(() => getInitDrivers(vehicle.m10?.drivers));
+  const [m11Drivers, setM11Drivers] = useState<string[]>(() => getInitDrivers(vehicle.m11?.drivers));
+
   const [editReason, setEditReason] = useState('บันทึกข้อมูลย้อนหลัง / ปรับปรุงข้อมูลจริง');
   const [saving, setSaving] = useState(false);
+
+  const cleanDrivers = (arr: string[]) => arr.map((s) => s.trim()).filter(Boolean);
+
+  const renderDriverInputs = (
+    drivers: string[],
+    setDrivers: React.Dispatch<React.SetStateAction<string[]>>,
+    monthLabel: string
+  ) => (
+    <div className="mt-2.5 pt-2 border-t border-slate-200 dark:border-slate-700/60">
+      <div className="flex items-center justify-between mb-1.5">
+        <span className="text-[11px] font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+          <Users className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+          <span>คนขับประจำเดือน {monthLabel} (สูงสุด 3 คน):</span>
+        </span>
+        <span className="text-[10px] text-slate-400">สลับคนได้ตลอดเวลา</span>
+      </div>
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+        <div>
+          <label className="text-[10px] text-slate-500 font-semibold block mb-0.5">1. คนขับหลัก</label>
+          <input
+            type="text"
+            value={drivers[0] || ''}
+            placeholder="เช่น นายสมชาย"
+            onChange={(e) => {
+              const next = [...drivers];
+              next[0] = e.target.value;
+              setDrivers(next);
+            }}
+            className="w-full text-xs p-1.5 rounded border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-800 dark:text-white"
+          />
+        </div>
+        <div>
+          <label className="text-[10px] text-slate-500 font-semibold block mb-0.5">2. คนขับเสริม 1</label>
+          <input
+            type="text"
+            value={drivers[1] || ''}
+            placeholder="เช่น นายสมศักดิ์"
+            onChange={(e) => {
+              const next = [...drivers];
+              next[1] = e.target.value;
+              setDrivers(next);
+            }}
+            className="w-full text-xs p-1.5 rounded border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-800 dark:text-white"
+          />
+        </div>
+        <div>
+          <label className="text-[10px] text-slate-500 font-semibold block mb-0.5">3. คนขับเสริม 2</label>
+          <input
+            type="text"
+            value={drivers[2] || ''}
+            placeholder="เช่น นายวิชัย"
+            onChange={(e) => {
+              const next = [...drivers];
+              next[2] = e.target.value;
+              setDrivers(next);
+            }}
+            className="w-full text-xs p-1.5 rounded border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-800 dark:text-white"
+          />
+        </div>
+      </div>
+    </div>
+  );
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -90,37 +162,43 @@ export const EditCarModal: React.FC<EditCarModalProps> = ({
           dist: Number(m6Dist),
           fuel: Number(m6Fuel),
           cost: Number(m6Cost),
-          jobs: Number(m6Jobs)
+          jobs: Number(m6Jobs),
+          drivers: cleanDrivers(m6Drivers)
         },
         m7: {
           dist: Number(m7Dist),
           fuel: Number(m7Fuel),
           cost: Number(m7Cost),
-          jobs: Number(m7Jobs)
+          jobs: Number(m7Jobs),
+          drivers: cleanDrivers(m7Drivers)
         },
         m8: {
           dist: Number(m8Dist),
           fuel: Number(m8Fuel),
           cost: Number(m8Cost),
-          jobs: Number(m8Jobs)
+          jobs: Number(m8Jobs),
+          drivers: cleanDrivers(m8Drivers)
         },
         m9: {
           dist: Number(m9Dist) || 0,
           fuel: Number(m9Fuel) || 0,
           cost: Number(m9Cost) || 0,
-          jobs: Number(m9Jobs) || 0
+          jobs: Number(m9Jobs) || 0,
+          drivers: cleanDrivers(m9Drivers)
         },
         m10: {
           dist: Number(m10Dist) || 0,
           fuel: Number(m10Fuel) || 0,
           cost: Number(m10Cost) || 0,
-          jobs: Number(m10Jobs) || 0
+          jobs: Number(m10Jobs) || 0,
+          drivers: cleanDrivers(m10Drivers)
         },
         m11: {
           dist: Number(m11Dist) || 0,
           fuel: Number(m11Fuel) || 0,
           cost: Number(m11Cost) || 0,
-          jobs: Number(m11Jobs) || 0
+          jobs: Number(m11Jobs) || 0,
+          drivers: cleanDrivers(m11Drivers)
         }
       };
 
@@ -336,6 +414,7 @@ export const EditCarModal: React.FC<EditCarModalProps> = ({
                   />
                 </div>
               </div>
+              {renderDriverInputs(m6Drivers, setM6Drivers, 'มิ.ย.')}
             </div>
 
             {/* M7 */}
@@ -384,6 +463,7 @@ export const EditCarModal: React.FC<EditCarModalProps> = ({
                   />
                 </div>
               </div>
+              {renderDriverInputs(m7Drivers, setM7Drivers, 'ก.ค.')}
             </div>
 
             {/* M8 */}
@@ -435,6 +515,7 @@ export const EditCarModal: React.FC<EditCarModalProps> = ({
                   />
                 </div>
               </div>
+              {renderDriverInputs(m8Drivers, setM8Drivers, 'ส.ค.')}
             </div>
 
             {/* M9 (New Month 9) */}
@@ -495,6 +576,7 @@ export const EditCarModal: React.FC<EditCarModalProps> = ({
                   />
                 </div>
               </div>
+              {renderDriverInputs(m9Drivers, setM9Drivers, 'ก.ย.')}
             </div>
 
             {/* M10 (New Month 10 - ต.ค. 69) */}
@@ -555,6 +637,7 @@ export const EditCarModal: React.FC<EditCarModalProps> = ({
                   />
                 </div>
               </div>
+              {renderDriverInputs(m10Drivers, setM10Drivers, 'ต.ค.')}
             </div>
 
             {/* M11 (New Month 11 - พ.ย. 69) */}
@@ -615,6 +698,7 @@ export const EditCarModal: React.FC<EditCarModalProps> = ({
                   />
                 </div>
               </div>
+              {renderDriverInputs(m11Drivers, setM11Drivers, 'พ.ย.')}
             </div>
 
             {/* Live Calculation Preview */}

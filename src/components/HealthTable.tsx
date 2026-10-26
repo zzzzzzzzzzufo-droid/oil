@@ -9,7 +9,8 @@ import {
   Search,
   Filter,
   FileSpreadsheet,
-  AlertTriangle
+  AlertTriangle,
+  Users
 } from 'lucide-react';
 import { Vehicle } from '../types';
 import { numFormat } from '../utils/calculations';
@@ -19,12 +20,14 @@ interface HealthTableProps {
   vehicles: Vehicle[];
   onSelectCar: (vehicle: Vehicle) => void;
   onEditCar: (vehicle: Vehicle) => void;
+  onOpenDriverRoster?: (vehicle: Vehicle) => void;
 }
 
 export const HealthTable: React.FC<HealthTableProps> = ({
   vehicles,
   onSelectCar,
-  onEditCar
+  onEditCar,
+  onOpenDriverRoster
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [planFilter, setPlanFilter] = useState<string>('all');
@@ -128,6 +131,16 @@ export const HealthTable: React.FC<HealthTableProps> = ({
           <span>ตารางที่ 1: การประเมินสภาพและคะแนนสุขภาพรถ (Health Score)</span>
         </h3>
         <div className="flex items-center gap-2 w-full sm:w-auto justify-between sm:justify-end">
+          {onOpenDriverRoster && (
+            <button
+              onClick={() => onOpenDriverRoster(vehicles[0])}
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-700 hover:bg-slate-600 text-white rounded-lg text-xs font-semibold shadow-xs transition-colors"
+              title="เปิดดูและจัดการคนขับรถแต่ละคันแต่ละเดือน (ซ่อนจากตารางหลัก)"
+            >
+              <Users className="w-3.5 h-3.5 text-emerald-400" />
+              <span>ทำเนียบคนขับ (Driver Roster)</span>
+            </button>
+          )}
           <button
             onClick={() => exportFleetToCsv(vehicles)}
             className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-semibold shadow-xs transition-colors"
@@ -275,13 +288,24 @@ export const HealthTable: React.FC<HealthTableProps> = ({
                       {getPlanBadge(car.plan)}
                     </td>
                     <td className="px-3 py-3 text-center">
-                      <button
-                        onClick={() => onEditCar(car)}
-                        title="แก้ไขข้อมูล (Edit Data)"
-                        className="p-1.5 text-slate-500 hover:text-blue-600 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-md transition-colors"
-                      >
-                        <Edit3 className="w-3.5 h-3.5" />
-                      </button>
+                      <div className="flex items-center justify-center gap-1">
+                        {onOpenDriverRoster && (
+                          <button
+                            onClick={() => onOpenDriverRoster(car)}
+                            title="รายชื่อคนขับแต่ละเดือน (Driver Roster)"
+                            className="p-1.5 text-slate-500 hover:text-emerald-600 hover:bg-emerald-50 dark:hover:bg-slate-700 rounded-md transition-colors"
+                          >
+                            <Users className="w-3.5 h-3.5" />
+                          </button>
+                        )}
+                        <button
+                          onClick={() => onEditCar(car)}
+                          title="แก้ไขข้อมูล (Edit Data)"
+                          className="p-1.5 text-slate-500 hover:text-blue-600 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-md transition-colors"
+                        >
+                          <Edit3 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 );

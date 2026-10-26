@@ -147,9 +147,12 @@ export function subscribeToFleetVehicles(
         const raw = d.data() as Omit<Vehicle, 'id'>;
         list.push({
           ...raw,
-          m9: raw.m9 || { dist: 0, fuel: 0, cost: 0, jobs: 0 },
-          m10: raw.m10 || { dist: 0, fuel: 0, cost: 0, jobs: 0 },
-          m11: raw.m11 || { dist: 0, fuel: 0, cost: 0, jobs: 0 },
+          m6: { ...raw.m6, drivers: raw.m6?.drivers || [] },
+          m7: { ...raw.m7, drivers: raw.m7?.drivers || [] },
+          m8: { ...raw.m8, drivers: raw.m8?.drivers || [] },
+          m9: raw.m9 ? { ...raw.m9, drivers: raw.m9.drivers || [] } : { dist: 0, fuel: 0, cost: 0, jobs: 0, drivers: [] },
+          m10: raw.m10 ? { ...raw.m10, drivers: raw.m10.drivers || [] } : { dist: 0, fuel: 0, cost: 0, jobs: 0, drivers: [] },
+          m11: raw.m11 ? { ...raw.m11, drivers: raw.m11.drivers || [] } : { dist: 0, fuel: 0, cost: 0, jobs: 0, drivers: [] },
           id: d.id
         });
       });

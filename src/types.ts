@@ -22,6 +22,7 @@ export interface MonthlyOperationalData {
   fuel: number;  // น้ำมัน (ลิตร)
   cost: number;  // ค่าน้ำมัน (บาท)
   jobs: number;  // จำนวนงาน (งาน)
+  drivers?: string[]; // รายชื่อคนขับประจำเดือน สูงสุด 3 คน (คนขับหลัก, คนขับสำรอง 1, คนขับสำรอง 2)
 }
 
 export interface Vehicle {

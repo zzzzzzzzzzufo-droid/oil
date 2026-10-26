@@ -22,6 +22,7 @@ import { AnalyticsSection } from './components/AnalyticsSection';
 import { MaintenancePredictor } from './components/MaintenancePredictor';
 import { CarDetailModal } from './components/CarDetailModal';
 import { EditCarModal } from './components/EditCarModal';
+import { DriverRosterModal } from './components/DriverRosterModal';
 import { DisposalMemoModal } from './components/DisposalMemoModal';
 import { SupportModal } from './components/SupportModal';
 import { AuditTrailModal } from './components/AuditTrailModal';
@@ -41,12 +42,21 @@ export default function App() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [selectedCar, setSelectedCar] = useState<Vehicle | null>(null);
   const [editingCar, setEditingCar] = useState<Vehicle | null>(null);
+  const [driverRosterOpen, setDriverRosterOpen] = useState(false);
+  const [driverRosterVehicle, setDriverRosterVehicle] = useState<Vehicle | null>(null);
+  const [driverRosterMonth, setDriverRosterMonth] = useState<MonthKey>('m8');
   const [memoOpen, setMemoOpen] = useState(false);
   const [supportOpen, setSupportOpen] = useState(false);
   const [auditOpen, setAuditOpen] = useState(false);
   const [marketIntelOpen, setMarketIntelOpen] = useState(false);
   const [marketIntelVehicle, setMarketIntelVehicle] = useState<Vehicle | null>(null);
   const [selectedMonths, setSelectedMonths] = useState<MonthKey[]>(['m6', 'm7', 'm8']); // Default 3 months as requested
+
+  const handleOpenDriverRoster = (car?: Vehicle | null, month?: MonthKey) => {
+    setDriverRosterVehicle(car || vehicles[0] || null);
+    if (month) setDriverRosterMonth(month);
+    setDriverRosterOpen(true);
+  };
 
   // Network & Sync States
   const [isOnline, setIsOnline] = useState<boolean>(navigator.onLine);
@@ -205,6 +215,7 @@ export default function App() {
         onClose={() => setSidebarOpen(false)}
         onOpenMemo={() => setMemoOpen(true)}
         onOpenSupport={() => setSupportOpen(true)}
+        onOpenDriverRoster={() => handleOpenDriverRoster()}
       />
 
       {/* Main Content Area */}
@@ -222,6 +233,7 @@ export default function App() {
             setMarketIntelVehicle(null);
             setMarketIntelOpen(true);
           }}
+          onOpenDriverRoster={() => handleOpenDriverRoster()}
           onResetData={handleResetData}
           isOnline={isOnline}
           syncStatus={syncStatus}
@@ -240,6 +252,7 @@ export default function App() {
             vehicles={vehicles}
             onSelectCar={(car) => setSelectedCar(car)}
             onEditCar={(car) => setEditingCar(car)}
+            onOpenDriverRoster={(car) => handleOpenDriverRoster(car)}
           />
 
           {/* Table 2: Integrated Fuel, Job Costs & Benchmark Analysis */}
@@ -247,6 +260,7 @@ export default function App() {
             vehicles={vehicles}
             onSelectCar={(car) => setSelectedCar(car)}
             onEditCar={(car) => setEditingCar(car)}
+            onOpenDriverRoster={(car) => handleOpenDriverRoster(car)}
             selectedMonths={selectedMonths}
             onChangeSelectedMonths={setSelectedMonths}
           />
@@ -306,6 +320,20 @@ export default function App() {
           setMarketIntelVehicle(car);
           setMarketIntelOpen(true);
         }}
+        onOpenDriverRoster={(car, month) => {
+          setSelectedCar(null);
+          handleOpenDriverRoster(car, month);
+        }}
+      />
+
+      {/* Driver Roster Pro Modal (Up to 3 drivers per vehicle per month) */}
+      <DriverRosterModal
+        isOpen={driverRosterOpen}
+        onClose={() => setDriverRosterOpen(false)}
+        vehicles={vehicles}
+        initialVehicle={driverRosterVehicle}
+        initialMonth={driverRosterMonth}
+        onSaveVehicle={handleSaveVehicle}
       />
 
       {/* Real-time Edit Modal */}
