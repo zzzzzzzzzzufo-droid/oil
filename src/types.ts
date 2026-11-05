@@ -76,7 +76,8 @@ export type MetricFilter =
   | 'jobs_asc'
   | 'cost_job_desc'
   | 'limit_usage_desc'
-  | 'distance_desc';
+  | 'distance_desc'
+  | 'fuel_cost_desc';
 
 export interface AuditLog {
   id: string;

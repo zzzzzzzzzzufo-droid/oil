@@ -9,7 +9,8 @@ import {
   Square,
   Edit3,
   Info,
-  Users
+  Users,
+  Flame
 } from 'lucide-react';
 import { Vehicle, MonthKey, MONTH_CONFIG } from '../types';
 import {
@@ -465,6 +466,16 @@ export const FuelTable: React.FC<FuelTableProps> = ({
                 <span>ทำเนียบคนขับ (Driver Roster)</span>
               </button>
             )}
+
+            {/* Monthly Peak Fuel Spenders Anchor Button */}
+            <a
+              href="#monthlyTopFuelSection"
+              className="px-2.5 py-1 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all border bg-amber-50 hover:bg-amber-100 dark:bg-amber-950/40 dark:hover:bg-amber-900/50 text-amber-800 dark:text-amber-300 border-amber-300 dark:border-amber-700 shadow-2xs ml-1"
+              title="ดูคันที่เติมน้ำมันเยอะสุดในแต่ละเดือน (ตารางกราฟ)"
+            >
+              <Flame className="w-3.5 h-3.5 text-amber-500 animate-pulse" />
+              <span>คันที่เติมเยอะสุด (ตารางกราฟ)</span>
+            </a>
           </div>
         </div>
       </div>

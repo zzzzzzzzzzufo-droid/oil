@@ -8,7 +8,8 @@ import {
   Fuel,
   Car,
   Wrench,
-  Users
+  Users,
+  Flame
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -86,6 +87,15 @@ export const Sidebar: React.FC<SidebarProps> = ({
             >
               <Fuel className="w-5 h-5 text-slate-400 group-hover:text-emerald-500" />
               <span>ต้นทุนน้ำมัน & งาน</span>
+            </a>
+
+            <a
+              href="#monthlyTopFuelSection"
+              onClick={onClose}
+              className="flex items-center gap-3 px-4 py-3 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-amber-600 rounded-xl font-medium transition-colors"
+            >
+              <Flame className="w-5 h-5 text-amber-500" />
+              <span>เติมน้ำมันเยอะสุด (ตารางกราฟ)</span>
             </a>
 
             <a

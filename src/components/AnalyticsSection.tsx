@@ -137,6 +137,13 @@ export const AnalyticsSection: React.FC<AnalyticsSectionProps> = ({
         extractor = (v) => getPeriodDist(v, period);
         comparator = (a, b) => extractor(b) - extractor(a);
         break;
+
+      case 'fuel_cost_desc':
+        t = 'อันดับรถยอดเติมน้ำมันเยอะที่สุด';
+        u = 'บาท';
+        extractor = (v) => getPeriodCost(v, period);
+        comparator = (a, b) => extractor(b) - extractor(a);
+        break;
     }
 
     const sorted = [...vehicles].sort(comparator).map((v) => ({
@@ -288,7 +295,7 @@ export const AnalyticsSection: React.FC<AnalyticsSectionProps> = ({
             </span>
           </div>
 
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-2">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-7 gap-2">
             {/* Metric 1 */}
             <button
               type="button"
@@ -418,6 +425,28 @@ export const AnalyticsSection: React.FC<AnalyticsSectionProps> = ({
               </span>
               <span className={`text-[10px] mt-1 ${metric === 'distance_desc' ? 'text-indigo-100' : 'text-slate-500 dark:text-slate-400'}`}>
                 ระยะทางสะสม กม.
+              </span>
+            </button>
+
+            {/* Metric 7: Highest Fuel Cost */}
+            <button
+              type="button"
+              onClick={() => {
+                setMetric('fuel_cost_desc');
+                setCategoryFilter('all');
+              }}
+              className={`p-2.5 text-xs rounded-xl border transition-all text-left flex flex-col justify-between shadow-xs ${
+                metric === 'fuel_cost_desc'
+                  ? 'bg-amber-600 text-white font-bold ring-2 ring-amber-500/30 border-amber-600'
+                  : 'bg-white dark:bg-slate-700 border-slate-200 dark:border-slate-600 text-slate-700 dark:text-slate-200 hover:border-amber-300'
+              }`}
+            >
+              <span className="flex items-center gap-1">
+                <Flame className={`w-3.5 h-3.5 ${metric === 'fuel_cost_desc' ? 'text-amber-200' : 'text-amber-500'}`} />
+                <span>เติมน้ำมันเยอะสุด</span>
+              </span>
+              <span className={`text-[10px] mt-1 ${metric === 'fuel_cost_desc' ? 'text-amber-100' : 'text-slate-500 dark:text-slate-400'}`}>
+                ค่าน้ำมันรวม (บาท)
               </span>
             </button>
           </div>

@@ -18,6 +18,7 @@ import { AIBanner } from './components/AIBanner';
 import { SummaryCards } from './components/SummaryCards';
 import { HealthTable } from './components/HealthTable';
 import { FuelTable } from './components/FuelTable';
+import { MonthlyTopFuelChart } from './components/MonthlyTopFuelChart';
 import { AnalyticsSection } from './components/AnalyticsSection';
 import { MaintenancePredictor } from './components/MaintenancePredictor';
 import { CarDetailModal } from './components/CarDetailModal';
@@ -263,6 +264,15 @@ export default function App() {
             onOpenDriverRoster={(car) => handleOpenDriverRoster(car)}
             selectedMonths={selectedMonths}
             onChangeSelectedMonths={setSelectedMonths}
+          />
+
+          {/* Monthly Top Fuel Spender Matrix & Interactive Charts */}
+          <MonthlyTopFuelChart
+            vehicles={vehicles}
+            onSelectCar={(car) => setSelectedCar(car)}
+            onEditCar={(car) => setEditingCar(car)}
+            onOpenDriverRoster={(car, month) => handleOpenDriverRoster(car, month)}
+            selectedMonths={selectedMonths}
           />
 
           {/* Table 3: Executive Analytics & Multi-dimensional Ranking Suite */}
