@@ -32,13 +32,20 @@ export const HealthTable: React.FC<HealthTableProps> = ({
   const [searchTerm, setSearchTerm] = useState('');
   const [planFilter, setPlanFilter] = useState<string>('all');
 
-  // Filtered vehicles
+  // Filtered vehicles (supports space-agnostic search e.g. 5กฮ6260 and 5กฮ 6260)
   const filteredVehicles = useMemo(() => {
+    const rawSearch = searchTerm.trim().toLowerCase();
+    const compactSearch = rawSearch.replace(/\s+/g, '');
+
     return vehicles.filter((car) => {
+      const plateLower = car.plate.toLowerCase();
+      const plateCompact = plateLower.replace(/\s+/g, '');
       const matchSearch =
-        car.plate.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        car.branch.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        car.recommendation.toLowerCase().includes(searchTerm.toLowerCase());
+        !rawSearch ||
+        plateCompact.includes(compactSearch) ||
+        plateLower.includes(rawSearch) ||
+        car.branch.toLowerCase().includes(rawSearch) ||
+        car.recommendation.toLowerCase().includes(rawSearch);
 
       const matchPlan = planFilter === 'all' || car.plan === planFilter;
 

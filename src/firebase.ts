@@ -99,23 +99,23 @@ export async function testConnection(): Promise<boolean> {
   }
 }
 
-// Seed initial authentic dataset if collection is empty
+// Seed or synchronize initial authentic dataset if any vehicles are missing in Firestore
 export async function seedInitialVehiclesIfEmpty(): Promise<void> {
   const path = 'fleet_vehicles';
   try {
     const snapshot = await getDocs(collection(db, path));
-    if (snapshot.empty) {
-      console.log('Seeding initial 16 authentic fleet vehicles into Firestore...');
-      for (const item of INITIAL_FLEET_DATA) {
-        // Use deterministic slug for vehicle ID
-        const docId = `car-${item.order}`;
+    const existingDocIds = new Set(snapshot.docs.map((d) => d.id));
+
+    for (const item of INITIAL_FLEET_DATA) {
+      const docId = `car-${item.order}`;
+      if (!existingDocIds.has(docId)) {
+        console.log(`Auto-seeding vehicle ${item.plate} (ID: ${docId}) into Firestore...`);
         await setDoc(doc(db, path, docId), {
           ...item,
           updatedAt: new Date().toISOString(),
           updatedBy: 'System Auto-Seed'
         });
       }
-      console.log('Fleet database seeded successfully.');
     }
   } catch (error) {
     console.warn('Initial seeding handled offline or error:', error);
@@ -143,8 +143,11 @@ export function subscribeToFleetVehicles(
       }
 
       const list: Vehicle[] = [];
+      const presentIds = new Set<string>();
+
       snapshot.forEach((d) => {
         const raw = d.data() as Omit<Vehicle, 'id'>;
+        presentIds.add(d.id);
         list.push({
           ...raw,
           m6: { ...raw.m6, drivers: raw.m6?.drivers || [] },
@@ -156,6 +159,32 @@ export function subscribeToFleetVehicles(
           id: d.id
         });
       });
+
+      // Ensure any newly configured fleet vehicles from code are immediately available
+      let missingCount = 0;
+      for (const item of INITIAL_FLEET_DATA) {
+        const docId = `car-${item.order}`;
+        if (!presentIds.has(docId)) {
+          missingCount++;
+          list.push({
+            ...item,
+            id: docId
+          });
+          // Auto sync missing document to Firestore asynchronously
+          setDoc(doc(db, path, docId), {
+            ...item,
+            updatedAt: new Date().toISOString(),
+            updatedBy: 'System Auto-Sync'
+          }).catch((err) => {
+            console.warn(`Could not sync ${docId} to Firestore:`, err);
+          });
+        }
+      }
+
+      if (missingCount > 0) {
+        console.log(`Synced ${missingCount} new vehicle(s) into local state and Firestore.`);
+      }
+
       // Sort by order ascending
       list.sort((a, b) => a.order - b.order);
       onUpdate(list);

@@ -208,10 +208,14 @@ export const MaintenancePredictor: React.FC<MaintenancePredictorProps> = ({
     return predictions.filter((item) => {
       const matchUrgency = filterUrgency === 'all' || item.urgency === filterUrgency;
       const matchBranch = filterBranch === 'all' || item.vehicle.branch === filterBranch;
+      const rawSearch = searchTerm.trim().toLowerCase();
+      const compactSearch = rawSearch.replace(/\s+/g, '');
+      const plateLower = item.vehicle.plate.toLowerCase();
       const matchSearch =
-        searchTerm.trim() === '' ||
-        item.vehicle.plate.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        item.vehicle.branch.toLowerCase().includes(searchTerm.toLowerCase());
+        rawSearch === '' ||
+        plateLower.replace(/\s+/g, '').includes(compactSearch) ||
+        plateLower.includes(rawSearch) ||
+        item.vehicle.branch.toLowerCase().includes(rawSearch);
 
       return matchUrgency && matchBranch && matchSearch;
     });

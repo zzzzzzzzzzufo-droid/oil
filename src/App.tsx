@@ -190,7 +190,7 @@ export default function App() {
   const handleResetData = async () => {
     if (
       window.confirm(
-        'ต้องการรีเซ็ตข้อมูลฟลีททั้ง 16 คันกลับเป็นค่าตั้งต้นที่แม่นยำใช่หรือไม่?'
+        `ต้องการรีเซ็ตข้อมูลฟลีททั้ง ${INITIAL_FLEET_DATA.length} คันกลับเป็นค่าตั้งต้นที่แม่นยำใช่หรือไม่?`
       )
     ) {
       try {
@@ -199,7 +199,7 @@ export default function App() {
         addToast(
           'success',
           'รีเซ็ตข้อมูลเรียบร้อย',
-          'กู้คืนข้อมูลตั้งต้น 16 คันเสร็จสมบูรณ์'
+          `กู้คืนข้อมูลตั้งต้น ${INITIAL_FLEET_DATA.length} คันเสร็จสมบูรณ์`
         );
       } catch (e) {
         console.error('Reset error:', e);
