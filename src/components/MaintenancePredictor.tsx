@@ -20,7 +20,7 @@ import {
   CalendarDays,
   Gauge
 } from 'lucide-react';
-import { Vehicle } from '../types';
+import { Vehicle, ALL_MONTH_KEYS } from '../types';
 import { numFormat } from '../utils/calculations';
 
 interface MaintenancePredictorProps {
@@ -69,8 +69,8 @@ export const MaintenancePredictor: React.FC<MaintenancePredictorProps> = ({
     const baseDate = new Date(2026, 9, 5); // 5 Oct 2026
 
     return vehicles.map((car) => {
-      const totalDist = (car.m6.dist || 0) + (car.m7.dist || 0) + (car.m8.dist || 0) + (car.m9?.dist || 0) + (car.m10?.dist || 0) + (car.m11?.dist || 0);
-      const activeCount = ((car.m6.dist ? 1 : 0) + (car.m7.dist ? 1 : 0) + (car.m8.dist ? 1 : 0) + (car.m9?.dist ? 1 : 0) + (car.m10?.dist ? 1 : 0) + (car.m11?.dist ? 1 : 0)) || 3;
+      const totalDist = ALL_MONTH_KEYS.reduce((sum, k) => sum + (car[k]?.dist || 0), 0);
+      const activeCount = ALL_MONTH_KEYS.reduce((cnt, k) => cnt + (car[k]?.dist ? 1 : 0), 0) || 3;
       const monthlyDistance = totalDist > 0 ? totalDist / activeCount : 200;
       // Daily run rate with a 15 km/day baseline for commercial pickup
       const dailyDistance = Math.max(15, monthlyDistance / 30);

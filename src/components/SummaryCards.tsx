@@ -7,7 +7,7 @@ import {
   LineChart,
   CheckCircle2
 } from 'lucide-react';
-import { Vehicle } from '../types';
+import { Vehicle, ALL_MONTH_KEYS } from '../types';
 
 interface SummaryCardsProps {
   vehicles: Vehicle[];
@@ -25,11 +25,12 @@ export const SummaryCards: React.FC<SummaryCardsProps> = ({ vehicles }) => {
   const totalCashflow = vehicles.reduce((sum, v) => sum + (v.estimatedPrice || 0), 0);
   const cashflowMillion = (totalCashflow / 1000000).toFixed(2);
 
-  // Check if New Months (Sep 9, Oct 10, Nov 11) have actual data entered
-  const septActualCost = vehicles.reduce((sum, v) => sum + (v.m9?.cost || 0), 0);
-  const octActualCost = vehicles.reduce((sum, v) => sum + (v.m10?.cost || 0), 0);
-  const novActualCost = vehicles.reduce((sum, v) => sum + (v.m11?.cost || 0), 0);
-  const newMonthsTotalCost = septActualCost + octActualCost + novActualCost;
+  // Check if New Months (Sep-Dec 69 & Jan-Dec 70) have actual data entered
+  const futureKeys = ALL_MONTH_KEYS.filter((k) => !['m6', 'm7', 'm8'].includes(k));
+  const newMonthsTotalCost = vehicles.reduce(
+    (sum, v) => sum + futureKeys.reduce((mSum, k) => mSum + (v[k]?.cost || 0), 0),
+    0
+  );
   const newMonthsCostK = Math.round(newMonthsTotalCost / 1000);
 
   // Predicted Monthly Fuel: based on recent actual trend (~85-90K / month)
@@ -110,13 +111,13 @@ export const SummaryCards: React.FC<SummaryCardsProps> = ({ vehicles }) => {
             <Sparkles className="w-4 h-4 text-pink-200" />
           )}
           <p className="text-xs font-semibold text-white/95">
-            {newMonthsTotalCost > 0 ? 'ค่าน้ำมัน ก.ย.-พ.ย. (จริง)' : 'พยากรณ์น้ำมัน (ก.ย.-พ.ย.)'}
+            {newMonthsTotalCost > 0 ? 'ค่าน้ำมัน ก.ย.69 - ปี 70 (จริง)' : 'พยากรณ์น้ำมัน (ก.ย.69 - ปี 70)'}
           </p>
         </div>
         <h3 className="text-2xl font-extrabold z-10 text-white">
           {newMonthsTotalCost > 0 ? `${newMonthsCostK}K` : `~${predictedMonthlyK || 88}K/ด.`}{' '}
           <span className="text-xs font-normal text-white/80">
-            {newMonthsTotalCost > 0 ? 'บันทึกแล้ว' : 'ต.ค.-พ.ย. รอคีย์'}
+            {newMonthsTotalCost > 0 ? 'บันทึกแล้ว' : 'ก.ย.69 - ธ.ค.70 รอคีย์'}
           </span>
         </h3>
       </div>

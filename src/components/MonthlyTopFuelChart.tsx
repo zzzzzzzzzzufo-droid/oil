@@ -3,24 +3,22 @@ import {
   Fuel,
   Trophy,
   Flame,
-  TrendingUp,
   BarChart3,
   Calendar,
-  AlertTriangle,
-  Award,
   Users,
   Edit3,
-  ChevronRight,
-  ExternalLink,
-  Layers,
   ArrowUpRight,
-  Sparkles,
-  CreditCard,
-  CheckCircle2,
   FileSpreadsheet
 } from 'lucide-react';
-import { Vehicle, MonthKey, MONTH_CONFIG } from '../types';
-import { numFormat } from '../utils/calculations';
+import {
+  Vehicle,
+  MonthKey,
+  MONTH_CONFIG,
+  ALL_MONTH_KEYS,
+  MONTHS_2569,
+  MONTHS_2570
+} from '../types';
+import { numFormat, getVehicleMonthData } from '../utils/calculations';
 
 interface MonthlyTopFuelChartProps {
   vehicles: Vehicle[];
@@ -28,6 +26,19 @@ interface MonthlyTopFuelChartProps {
   onEditCar?: (vehicle: Vehicle) => void;
   onOpenDriverRoster?: (vehicle: Vehicle, month?: MonthKey) => void;
   selectedMonths?: MonthKey[];
+}
+
+interface ChampionEntry {
+  vehicle: Vehicle;
+  cost: number;
+  fuel: number;
+  dist: number;
+  jobs: number;
+  eff: number;
+  cKm: number;
+  cJob: number;
+  limitUsage: number;
+  drivers: string[];
 }
 
 export const MonthlyTopFuelChart: React.FC<MonthlyTopFuelChartProps> = ({
@@ -38,40 +49,47 @@ export const MonthlyTopFuelChart: React.FC<MonthlyTopFuelChartProps> = ({
   selectedMonths
 }) => {
   const activePeriodMonths: MonthKey[] = selectedMonths || ['m6', 'm7', 'm8'];
-  const allMonths: MonthKey[] = ['m6', 'm7', 'm8', 'm9', 'm10', 'm11'];
 
-  // Selected month for detailed spotlight and ranking table/graph
+  // Year filter for clean cross-year navigation
+  const [yearScope, setYearScope] = useState<'2569' | '2570' | 'all'>('2569');
   const [activeMonth, setActiveMonth] = useState<MonthKey | 'total'>('m7');
   const [activeTab, setActiveTab] = useState<'champions' | 'ranking'>('champions');
   const [chartMode, setChartMode] = useState<'monthlyComparison' | 'fleetDistribution'>('monthlyComparison');
   const [hoveredPlate, setHoveredPlate] = useState<string | null>(null);
 
-  // Compute #1 Champion for each month
-  const monthlyChampions = useMemo(() => {
-    const map: Record<MonthKey, { vehicle: Vehicle; cost: number; fuel: number; dist: number; jobs: number; eff: number; cKm: number; cJob: number; limitUsage: number; drivers: string[] } | null> = {
-      m6: null,
-      m7: null,
-      m8: null,
-      m9: null,
-      m10: null,
-      m11: null
-    };
+  const visibleMonths: MonthKey[] = useMemo(() => {
+    if (yearScope === '2569') return [...MONTHS_2569];
+    if (yearScope === '2570') return [...MONTHS_2570];
+    return [...ALL_MONTH_KEYS];
+  }, [yearScope]);
 
-    allMonths.forEach((m) => {
-      // Sort vehicles by fuel cost for month m
-      const sorted = [...vehicles].sort((a, b) => (b[m]?.cost || 0) - (a[m]?.cost || 0));
+  const handleChangeYearScope = (nextScope: '2569' | '2570' | 'all') => {
+    setYearScope(nextScope);
+    if (nextScope === '2569' && activeMonth !== 'total' && !MONTHS_2569.includes(activeMonth as typeof MONTHS_2569[number])) {
+      setActiveMonth('m12');
+    } else if (nextScope === '2570' && activeMonth !== 'total' && !MONTHS_2570.includes(activeMonth as typeof MONTHS_2570[number])) {
+      setActiveMonth('y70_m1');
+    }
+  };
+
+  // Compute #1 Champion for each of the 19 months
+  const monthlyChampions = useMemo(() => {
+    const map = {} as Record<MonthKey, ChampionEntry | null>;
+
+    ALL_MONTH_KEYS.forEach((m) => {
+      const sorted = [...vehicles].sort(
+        (a, b) => getVehicleMonthData(b, m).cost - getVehicleMonthData(a, m).cost
+      );
       const top = sorted[0];
-      if (top && (top[m]?.cost || 0) > 0) {
-        const cost = top[m]?.cost || 0;
-        const fuel = top[m]?.fuel || 0;
-        const dist = top[m]?.dist || 0;
-        const jobs = top[m]?.jobs || 0;
+      const topData = top ? getVehicleMonthData(top, m) : null;
+
+      if (top && topData && topData.cost > 0) {
+        const { cost, fuel, dist, jobs, drivers = [] } = topData;
         const limit = top.limit || 12000;
         const eff = fuel > 0 ? dist / fuel : 0;
         const cKm = dist > 0 ? cost / dist : 0;
         const cJob = jobs > 0 ? cost / jobs : 0;
         const limitUsage = limit > 0 ? (cost / limit) * 100 : 0;
-        const drivers = top[m]?.drivers || [];
 
         map[m] = {
           vehicle: top,
@@ -85,27 +103,29 @@ export const MonthlyTopFuelChart: React.FC<MonthlyTopFuelChartProps> = ({
           limitUsage,
           drivers
         };
+      } else {
+        map[m] = null;
       }
     });
 
     return map;
-  }, [vehicles, allMonths]);
+  }, [vehicles]);
 
-  // Overall Total Champion
+  // Overall Total Champion across activePeriodMonths
   const totalChampion = useMemo(() => {
     const sorted = [...vehicles].sort((a, b) => {
-      const costA = activePeriodMonths.reduce((sum, m) => sum + (a[m]?.cost || 0), 0);
-      const costB = activePeriodMonths.reduce((sum, m) => sum + (b[m]?.cost || 0), 0);
+      const costA = activePeriodMonths.reduce((sum, m) => sum + getVehicleMonthData(a, m).cost, 0);
+      const costB = activePeriodMonths.reduce((sum, m) => sum + getVehicleMonthData(b, m).cost, 0);
       return costB - costA;
     });
 
     const top = sorted[0];
     if (!top) return null;
 
-    const cost = activePeriodMonths.reduce((sum, m) => sum + (top[m]?.cost || 0), 0);
-    const fuel = activePeriodMonths.reduce((sum, m) => sum + (top[m]?.fuel || 0), 0);
-    const dist = activePeriodMonths.reduce((sum, m) => sum + (top[m]?.dist || 0), 0);
-    const jobs = activePeriodMonths.reduce((sum, m) => sum + (top[m]?.jobs || 0), 0);
+    const cost = activePeriodMonths.reduce((sum, m) => sum + getVehicleMonthData(top, m).cost, 0);
+    const fuel = activePeriodMonths.reduce((sum, m) => sum + getVehicleMonthData(top, m).fuel, 0);
+    const dist = activePeriodMonths.reduce((sum, m) => sum + getVehicleMonthData(top, m).dist, 0);
+    const jobs = activePeriodMonths.reduce((sum, m) => sum + getVehicleMonthData(top, m).jobs, 0);
     const limit = (top.limit || 12000) * activePeriodMonths.length;
     const eff = fuel > 0 ? dist / fuel : 0;
     const cKm = dist > 0 ? cost / dist : 0;
@@ -131,10 +151,10 @@ export const MonthlyTopFuelChart: React.FC<MonthlyTopFuelChartProps> = ({
     if (activeMonth === 'total') {
       return [...vehicles]
         .map((v) => {
-          const cost = activePeriodMonths.reduce((sum, m) => sum + (v[m]?.cost || 0), 0);
-          const fuel = activePeriodMonths.reduce((sum, m) => sum + (v[m]?.fuel || 0), 0);
-          const dist = activePeriodMonths.reduce((sum, m) => sum + (v[m]?.dist || 0), 0);
-          const jobs = activePeriodMonths.reduce((sum, m) => sum + (v[m]?.jobs || 0), 0);
+          const cost = activePeriodMonths.reduce((sum, m) => sum + getVehicleMonthData(v, m).cost, 0);
+          const fuel = activePeriodMonths.reduce((sum, m) => sum + getVehicleMonthData(v, m).fuel, 0);
+          const dist = activePeriodMonths.reduce((sum, m) => sum + getVehicleMonthData(v, m).dist, 0);
+          const jobs = activePeriodMonths.reduce((sum, m) => sum + getVehicleMonthData(v, m).jobs, 0);
           const limit = (v.limit || 0) * activePeriodMonths.length;
           const eff = fuel > 0 ? dist / fuel : 0;
           const cKm = dist > 0 ? cost / dist : 0;
@@ -159,11 +179,8 @@ export const MonthlyTopFuelChart: React.FC<MonthlyTopFuelChartProps> = ({
 
     return [...vehicles]
       .map((v) => {
-        const mData = v[activeMonth] || { dist: 0, fuel: 0, cost: 0, jobs: 0, drivers: [] };
-        const cost = mData.cost || 0;
-        const fuel = mData.fuel || 0;
-        const dist = mData.dist || 0;
-        const jobs = mData.jobs || 0;
+        const mData = getVehicleMonthData(v, activeMonth);
+        const { cost, fuel, dist, jobs, drivers = [] } = mData;
         const limit = v.limit || 0;
         const eff = fuel > 0 ? dist / fuel : 0;
         const cKm = dist > 0 ? cost / dist : 0;
@@ -180,35 +197,31 @@ export const MonthlyTopFuelChart: React.FC<MonthlyTopFuelChartProps> = ({
           cKm,
           cJob,
           limitUsage,
-          drivers: mData.drivers || []
+          drivers
         };
       })
       .sort((a, b) => b.cost - a.cost);
   }, [vehicles, activeMonth, activePeriodMonths]);
 
-  // Current spotlight champion
   const currentSpotlight = activeMonth === 'total' ? totalChampion : monthlyChampions[activeMonth];
 
-  // Max fuel cost for charting
   const maxFleetCost = useMemo(() => {
     return Math.max(...activeMonthRankings.map((r) => r.cost), 12000);
   }, [activeMonthRankings]);
 
-  // Average fleet fuel cost
   const avgFleetCost = useMemo(() => {
     const total = activeMonthRankings.reduce((sum, r) => sum + r.cost, 0);
     return activeMonthRankings.length > 0 ? total / activeMonthRankings.length : 0;
   }, [activeMonthRankings]);
 
-  // Max cost among monthly champions for comparison bar chart
   const maxMonthlyChampionCost = useMemo(() => {
     let max = 12000;
-    allMonths.forEach((m) => {
+    visibleMonths.forEach((m) => {
       const champ = monthlyChampions[m];
       if (champ && champ.cost > max) max = champ.cost;
     });
     return max;
-  }, [monthlyChampions, allMonths]);
+  }, [monthlyChampions, visibleMonths]);
 
   const getPlanBadge = (plan: Vehicle['plan']) => {
     switch (plan) {
@@ -238,7 +251,7 @@ export const MonthlyTopFuelChart: React.FC<MonthlyTopFuelChartProps> = ({
               <span>Fuel Peak Analytics</span>
             </span>
             <span className="text-xs text-amber-300 font-medium">
-              วิเคราะห์รถที่มียอดเติมน้ำมันสูงสุดรายเดือน
+              ปี 2569 – ปี 2570 (19 เดือน)
             </span>
           </div>
           <h3 className="font-bold text-base flex items-center gap-2">
@@ -258,15 +271,55 @@ export const MonthlyTopFuelChart: React.FC<MonthlyTopFuelChartProps> = ({
         </div>
       </div>
 
-      {/* Month Navigation Pills Bar */}
-      <div className="p-4 bg-slate-50/90 dark:bg-slate-800/80 border-b border-slate-200 dark:border-slate-700 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
-        <div className="flex items-center gap-2 text-xs font-bold text-slate-700 dark:text-slate-300">
-          <Calendar className="w-4 h-4 text-amber-600 dark:text-amber-400" />
-          <span>เลือกรอบเดือนที่ต้องการดูแชมป์เติมน้ำมัน:</span>
+      {/* Year Scope & Month Navigation Bar */}
+      <div className="p-4 bg-slate-50/90 dark:bg-slate-800/80 border-b border-slate-200 dark:border-slate-700 flex flex-col gap-3">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+          <div className="flex items-center gap-2 text-xs font-bold text-slate-700 dark:text-slate-300">
+            <Calendar className="w-4 h-4 text-amber-600 dark:text-amber-400" />
+            <span>เลือกรอบปี & เดือนที่ต้องการดูแชมป์เติมน้ำมัน:</span>
+          </div>
+
+          {/* Year Scope Segmented Control */}
+          <div className="inline-flex rounded-xl bg-slate-200/80 dark:bg-slate-700 p-1 text-xs font-bold border border-slate-300/60 dark:border-slate-600">
+            <button
+              type="button"
+              onClick={() => handleChangeYearScope('2569')}
+              className={`px-3 py-1.5 rounded-lg transition-all ${
+                yearScope === '2569'
+                  ? 'bg-white dark:bg-slate-800 text-amber-700 dark:text-amber-400 shadow-xs'
+                  : 'text-slate-600 dark:text-slate-300 hover:text-slate-900'
+              }`}
+            >
+              ปี 2569 (มิ.ย.-ธ.ค.)
+            </button>
+            <button
+              type="button"
+              onClick={() => handleChangeYearScope('2570')}
+              className={`px-3 py-1.5 rounded-lg transition-all ${
+                yearScope === '2570'
+                  ? 'bg-white dark:bg-slate-800 text-teal-700 dark:text-teal-400 shadow-xs'
+                  : 'text-slate-600 dark:text-slate-300 hover:text-slate-900'
+              }`}
+            >
+              ปี 2570 (ม.ค.-ธ.ค.)
+            </button>
+            <button
+              type="button"
+              onClick={() => handleChangeYearScope('all')}
+              className={`px-3 py-1.5 rounded-lg transition-all ${
+                yearScope === 'all'
+                  ? 'bg-white dark:bg-slate-800 text-blue-700 dark:text-blue-400 shadow-xs'
+                  : 'text-slate-600 dark:text-slate-300 hover:text-slate-900'
+              }`}
+            >
+              ทั้งหมด (19 ด.)
+            </button>
+          </div>
         </div>
 
-        <div className="flex flex-wrap items-center gap-1.5 w-full sm:w-auto">
-          {allMonths.map((m) => {
+        {/* Month Selector Pills */}
+        <div className="flex flex-wrap items-center gap-1.5">
+          {visibleMonths.map((m) => {
             const conf = MONTH_CONFIG[m];
             const champ = monthlyChampions[m];
             const isSelected = activeMonth === m;
@@ -276,19 +329,19 @@ export const MonthlyTopFuelChart: React.FC<MonthlyTopFuelChartProps> = ({
                 key={m}
                 type="button"
                 onClick={() => setActiveMonth(m)}
-                className={`px-3 py-2 rounded-xl text-xs font-bold transition-all border flex items-center gap-1.5 shadow-2xs ${
+                className={`px-2.5 py-1.5 rounded-xl text-xs font-bold transition-all border flex items-center gap-1.5 shadow-2xs ${
                   isSelected
                     ? 'bg-amber-600 text-white border-amber-600 ring-2 ring-amber-400/30'
                     : 'bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-200 border-slate-200 dark:border-slate-600 hover:border-amber-300'
                 }`}
               >
-                <span>{conf.shortLabel}</span>
+                <span>{conf.shortYearLabel}</span>
                 {champ ? (
                   <span className={`text-[10px] px-1.5 py-0.2 rounded font-extrabold ${isSelected ? 'bg-black/20 text-white' : 'bg-amber-100 text-amber-900 dark:bg-amber-950/60 dark:text-amber-300'}`}>
                     {champ.vehicle.plate}
                   </span>
                 ) : (
-                  <span className="text-[10px] text-slate-400">รอข้อมูล</span>
+                  <span className={`text-[10px] ${isSelected ? 'text-amber-100' : 'text-slate-400'}`}>รอข้อมูล</span>
                 )}
               </button>
             );
@@ -297,7 +350,7 @@ export const MonthlyTopFuelChart: React.FC<MonthlyTopFuelChartProps> = ({
           <button
             type="button"
             onClick={() => setActiveMonth('total')}
-            className={`px-3 py-2 rounded-xl text-xs font-bold transition-all border flex items-center gap-1.5 shadow-2xs ${
+            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all border flex items-center gap-1.5 shadow-2xs ${
               activeMonth === 'total'
                 ? 'bg-blue-700 text-white border-blue-700 ring-2 ring-blue-400/30'
                 : 'bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-200 border-slate-200 dark:border-slate-600 hover:border-blue-300'
@@ -317,11 +370,9 @@ export const MonthlyTopFuelChart: React.FC<MonthlyTopFuelChartProps> = ({
       <div className="p-4 md:p-6 bg-gradient-to-b from-amber-50/50 to-transparent dark:from-amber-950/10 border-b border-slate-200 dark:border-slate-700">
         {currentSpotlight ? (
           <div className="bg-white dark:bg-slate-800 rounded-2xl p-4 md:p-5 border border-amber-200 dark:border-amber-900/60 shadow-md relative overflow-hidden">
-            {/* Background watermark */}
             <Trophy className="w-48 h-48 text-amber-500/5 dark:text-amber-400/5 absolute -right-6 -bottom-6 pointer-events-none" />
 
             <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 relative z-10">
-              {/* Left Side: Vehicle Identity */}
               <div className="space-y-2">
                 <div className="flex flex-wrap items-center gap-2">
                   <span className="px-2.5 py-1 rounded-lg bg-amber-500 text-slate-950 font-black text-xs flex items-center gap-1 shadow-xs">
@@ -331,7 +382,7 @@ export const MonthlyTopFuelChart: React.FC<MonthlyTopFuelChartProps> = ({
                   <span className="text-xs font-bold text-amber-700 dark:text-amber-400">
                     {activeMonth === 'total'
                       ? `ภาพรวมสะสม ${activePeriodMonths.length} เดือน`
-                      : MONTH_CONFIG[activeMonth]?.label}
+                      : MONTH_CONFIG[activeMonth]?.thaiName}
                   </span>
                   {getPlanBadge(currentSpotlight.vehicle.plan)}
                 </div>
@@ -353,7 +404,6 @@ export const MonthlyTopFuelChart: React.FC<MonthlyTopFuelChartProps> = ({
                   {currentSpotlight.vehicle.notes || currentSpotlight.vehicle.recommendation}
                 </p>
 
-                {/* Driver Roster Preview */}
                 <div className="flex items-center gap-2 pt-1 text-xs text-slate-600 dark:text-slate-300">
                   <Users className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
                   <span className="font-semibold text-slate-700 dark:text-slate-200">
@@ -379,9 +429,7 @@ export const MonthlyTopFuelChart: React.FC<MonthlyTopFuelChartProps> = ({
                 </div>
               </div>
 
-              {/* Right Side: Key Numbers Highlight */}
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 w-full lg:w-auto">
-                {/* Cost */}
                 <div className="bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 rounded-xl p-3 text-center">
                   <span className="text-[11px] font-bold text-amber-800 dark:text-amber-300 block">
                     ยอดเติมน้ำมัน
@@ -392,7 +440,6 @@ export const MonthlyTopFuelChart: React.FC<MonthlyTopFuelChartProps> = ({
                   <span className="text-[10px] text-slate-500 block">บาท</span>
                 </div>
 
-                {/* Fuel Volume */}
                 <div className="bg-slate-50 dark:bg-slate-700/60 border border-slate-200 dark:border-slate-600 rounded-xl p-3 text-center">
                   <span className="text-[11px] font-bold text-slate-700 dark:text-slate-300 block">
                     ปริมาณที่เติม
@@ -403,7 +450,6 @@ export const MonthlyTopFuelChart: React.FC<MonthlyTopFuelChartProps> = ({
                   <span className="text-[10px] text-slate-500 block">ลิตร</span>
                 </div>
 
-                {/* Distance & Efficiency */}
                 <div className="bg-slate-50 dark:bg-slate-700/60 border border-slate-200 dark:border-slate-600 rounded-xl p-3 text-center">
                   <span className="text-[11px] font-bold text-slate-700 dark:text-slate-300 block">
                     อัตรากินน้ำมัน
@@ -414,7 +460,6 @@ export const MonthlyTopFuelChart: React.FC<MonthlyTopFuelChartProps> = ({
                   <span className="text-[10px] text-slate-500 block">กม./ลิตร</span>
                 </div>
 
-                {/* Limit Usage */}
                 <div className={`rounded-xl p-3 text-center border ${
                   currentSpotlight.limitUsage >= 100
                     ? 'bg-red-50 dark:bg-red-950/40 border-red-300 dark:border-red-800'
@@ -437,7 +482,6 @@ export const MonthlyTopFuelChart: React.FC<MonthlyTopFuelChartProps> = ({
               </div>
             </div>
 
-            {/* Quick Action Bar for Spotlight Vehicle */}
             <div className="mt-4 pt-3 border-t border-slate-100 dark:border-slate-700 flex flex-wrap items-center justify-between gap-2 text-xs">
               <div className="text-slate-500 dark:text-slate-400 flex items-center gap-2">
                 <span>ระยะทางที่วิ่ง: <b>{numFormat(currentSpotlight.dist)} กม.</b></span>
@@ -479,13 +523,13 @@ export const MonthlyTopFuelChart: React.FC<MonthlyTopFuelChartProps> = ({
               ยังไม่มีข้อมูลการเติมน้ำมันในเดือน {activeMonth === 'total' ? 'ที่เลือก' : MONTH_CONFIG[activeMonth]?.thaiName}
             </h4>
             <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 max-w-md mx-auto">
-              ท่านสามารถคลิกที่ปุ่ม &quot;แก้ไขข้อมูล&quot; ในตารางหลักเพื่อเริ่มบันทึกตัวเลขค่าน้ำมันและระยะทางประจำเดือนได้ทันที
+              ท่านสามารถคลิกที่ปุ่ม &quot;แก้ไขข้อมูล&quot; ในตารางหลักเพื่อเริ่มบันทึกตัวเลขค่าน้ำมันและระยะทางประจำเดือนนี้ได้ทันที
             </p>
           </div>
         )}
       </div>
 
-      {/* Graphs Section: Two Toggleable Views */}
+      {/* Graphs Section */}
       <div className="p-4 md:p-6 border-b border-slate-200 dark:border-slate-700">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-4">
           <div>
@@ -493,8 +537,10 @@ export const MonthlyTopFuelChart: React.FC<MonthlyTopFuelChartProps> = ({
               <BarChart3 className="w-4 h-4 text-amber-500" />
               <span>
                 {chartMode === 'monthlyComparison'
-                  ? 'กราฟเปรียบเทียบแชมป์ยอดเติมน้ำมันสูงสุดของแต่ละเดือน (มิ.ย. - พ.ย. 69)'
-                  : `กราฟจัดอันดับยอดเติมน้ำมันทั้งฟลีทในเดือน ${activeMonth === 'total' ? 'ภาพรวมสะสม' : MONTH_CONFIG[activeMonth]?.label}`}
+                  ? `กราฟเปรียบเทียบแชมป์ยอดเติมน้ำมันสูงสุด (${
+                      yearScope === '2569' ? 'ปี 2569: มิ.ย.-ธ.ค.' : yearScope === '2570' ? 'ปี 2570: ม.ค.-ธ.ค.' : 'ครบ 19 เดือน: มิ.ย. 69 - ธ.ค. 70'
+                    })`
+                  : `กราฟจัดอันดับยอดเติมน้ำมันทั้งฟลีทในเดือน ${activeMonth === 'total' ? 'ภาพรวมสะสม' : MONTH_CONFIG[activeMonth]?.thaiName}`}
               </span>
             </h4>
             <p className="text-xs text-slate-500 dark:text-slate-400">
@@ -514,7 +560,7 @@ export const MonthlyTopFuelChart: React.FC<MonthlyTopFuelChartProps> = ({
                   : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
               }`}
             >
-              เทรนด์เปรียบเทียบ 6 เดือน
+              เทรนด์เปรียบเทียบรายเดือน
             </button>
             <button
               type="button"
@@ -530,10 +576,9 @@ export const MonthlyTopFuelChart: React.FC<MonthlyTopFuelChartProps> = ({
           </div>
         </div>
 
-        {/* Chart View 1: 6-Month Chronological Comparison */}
+        {/* Chart View 1: Chronological Comparison */}
         {chartMode === 'monthlyComparison' && (
-          <div className="bg-slate-50 dark:bg-slate-800/40 rounded-xl p-4 md:p-6 border border-slate-200 dark:border-slate-700">
-            {/* Tooltip Overlay */}
+          <div className="bg-slate-50 dark:bg-slate-800/40 rounded-xl p-4 md:p-6 border border-slate-200 dark:border-slate-700 overflow-x-auto">
             {hoveredPlate && (
               <div className="mb-2 p-2 bg-slate-900/90 text-white rounded-lg text-xs font-medium self-center shadow-lg transition-all animate-fade-in flex items-center gap-2 max-w-fit mx-auto">
                 <span className="font-bold text-amber-300">รถ {hoveredPlate}</span>
@@ -542,7 +587,12 @@ export const MonthlyTopFuelChart: React.FC<MonthlyTopFuelChartProps> = ({
               </div>
             )}
 
-            <div className="grid grid-cols-6 gap-2 sm:gap-4 items-end h-[240px] pt-8 pb-2 border-b border-slate-200 dark:border-slate-700 relative">
+            <div
+              className="grid gap-2 sm:gap-3 items-end h-[240px] pt-8 pb-2 border-b border-slate-200 dark:border-slate-700 relative min-w-[540px]"
+              style={{
+                gridTemplateColumns: `repeat(${visibleMonths.length}, minmax(48px, 1fr))`
+              }}
+            >
               {/* Benchmark Reference Line (12,000 Baht Limit) */}
               <div
                 className="absolute w-full border-b border-dashed border-red-400/60 dark:border-red-500/60 z-10 pointer-events-none flex items-center justify-end pr-2"
@@ -555,7 +605,7 @@ export const MonthlyTopFuelChart: React.FC<MonthlyTopFuelChartProps> = ({
                 </span>
               </div>
 
-              {allMonths.map((m) => {
+              {visibleMonths.map((m) => {
                 const conf = MONTH_CONFIG[m];
                 const champ = monthlyChampions[m];
                 const cost = champ?.cost || 0;
@@ -570,16 +620,15 @@ export const MonthlyTopFuelChart: React.FC<MonthlyTopFuelChartProps> = ({
                     onMouseLeave={() => setHoveredPlate(null)}
                     className="group flex flex-col items-center justify-end h-full cursor-pointer relative"
                   >
-                    {/* Value Badge above Bar */}
                     <div className={`mb-1 text-center transition-all ${champ ? 'opacity-100' : 'opacity-40'}`}>
                       {champ ? (
                         <div className="flex flex-col items-center">
-                          <span className={`text-[11px] font-black ${
+                          <span className={`text-[10px] font-black ${
                             cost >= 12000 ? 'text-red-600 dark:text-red-400' : 'text-amber-600 dark:text-amber-400'
                           }`}>
                             {numFormat(cost)} บ.
                           </span>
-                          <span className="text-[9px] font-bold text-slate-700 dark:text-slate-200 bg-slate-200 dark:bg-slate-700 px-1 rounded">
+                          <span className="text-[9px] font-bold text-slate-700 dark:text-slate-200 bg-slate-200 dark:bg-slate-700 px-1 rounded truncate max-w-[60px]">
                             {champ.vehicle.plate}
                           </span>
                         </div>
@@ -588,12 +637,11 @@ export const MonthlyTopFuelChart: React.FC<MonthlyTopFuelChartProps> = ({
                       )}
                     </div>
 
-                    {/* The Bar */}
                     <div
                       style={{
                         height: `${Math.max(heightPercent, cost > 0 ? 6 : 2)}%`
                       }}
-                      className={`w-full max-w-[56px] rounded-t-xl transition-all duration-300 relative shadow-xs group-hover:brightness-110 ${
+                      className={`w-full max-w-[48px] rounded-t-xl transition-all duration-300 relative shadow-xs group-hover:brightness-110 ${
                         isSelected
                           ? 'bg-gradient-to-t from-amber-600 to-amber-400 ring-2 ring-amber-400 shadow-md'
                           : cost >= 12000
@@ -610,13 +658,12 @@ export const MonthlyTopFuelChart: React.FC<MonthlyTopFuelChartProps> = ({
                       )}
                     </div>
 
-                    {/* Month Label */}
                     <div className="mt-2 text-center">
-                      <span className={`text-xs font-bold block ${isSelected ? 'text-amber-600 dark:text-amber-400 underline underline-offset-4' : 'text-slate-700 dark:text-slate-300'}`}>
+                      <span className={`text-[11px] font-bold block ${isSelected ? 'text-amber-600 dark:text-amber-400 underline underline-offset-4' : 'text-slate-700 dark:text-slate-300'}`}>
                         {conf.shortLabel}
                       </span>
-                      <span className="text-[10px] text-slate-400 block">
-                        {conf.label.includes('มิ.ย.') ? 'มิ.ย. 69' : conf.label.includes('ก.ค.') ? 'ก.ค. 69' : conf.label.includes('ส.ค.') ? 'ส.ค. 69' : conf.label.includes('ก.ย.') ? 'ก.ย. 69' : conf.label.includes('ต.ค.') ? 'ต.ค. 69' : 'พ.ย. 69'}
+                      <span className="text-[9px] text-slate-400 block">
+                        {conf.year === 2569 ? '69' : '70'}
                       </span>
                     </div>
                   </div>
@@ -645,14 +692,13 @@ export const MonthlyTopFuelChart: React.FC<MonthlyTopFuelChartProps> = ({
           <div className="bg-slate-50 dark:bg-slate-800/40 rounded-xl p-4 md:p-6 border border-slate-200 dark:border-slate-700">
             <div className="flex justify-between items-center mb-3 text-xs text-slate-600 dark:text-slate-400">
               <span className="font-bold">
-                จัดอันดับรถ 22 คันตามยอดเติมน้ำมัน ({activeMonth === 'total' ? 'ยอดรวมสะสม' : MONTH_CONFIG[activeMonth]?.label})
+                จัดอันดับรถ {vehicles.length} คันตามยอดเติมน้ำมัน ({activeMonth === 'total' ? 'ยอดรวมสะสม' : MONTH_CONFIG[activeMonth]?.thaiName})
               </span>
               <span>
                 ค่าเฉลี่ยฟลีท: <b className="text-amber-600 dark:text-amber-400">{numFormat(avgFleetCost, 0, 0)} บาท/คัน</b>
               </span>
             </div>
 
-            {/* Horizontal Bar Chart of Vehicles */}
             <div className="space-y-2 max-h-[380px] overflow-y-auto pr-1">
               {activeMonthRankings.map((item, idx) => {
                 const widthPercent = maxFleetCost > 0 ? (item.cost / maxFleetCost) * 100 : 0;
@@ -669,7 +715,6 @@ export const MonthlyTopFuelChart: React.FC<MonthlyTopFuelChartProps> = ({
                         : 'bg-white dark:bg-slate-800/80 border-slate-200 dark:border-slate-700 hover:border-slate-400'
                     }`}
                   >
-                    {/* Rank & Plate */}
                     <div className="w-[140px] shrink-0 flex items-center gap-2">
                       <span className={`w-5 h-5 rounded-md flex items-center justify-center font-bold text-[10px] ${
                         idx === 0
@@ -688,7 +733,6 @@ export const MonthlyTopFuelChart: React.FC<MonthlyTopFuelChartProps> = ({
                       {isChampion && <Trophy className="w-3.5 h-3.5 text-amber-500" />}
                     </div>
 
-                    {/* Visual Bar */}
                     <div className="flex-1 h-3.5 bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden relative">
                       <div
                         style={{ width: `${Math.max(widthPercent, item.cost > 0 ? 3 : 0)}%` }}
@@ -704,7 +748,6 @@ export const MonthlyTopFuelChart: React.FC<MonthlyTopFuelChartProps> = ({
                       />
                     </div>
 
-                    {/* Cost & Metrics */}
                     <div className="w-[180px] shrink-0 text-right flex items-center justify-end gap-3">
                       <div>
                         <span className={`font-black ${
@@ -739,14 +782,15 @@ export const MonthlyTopFuelChart: React.FC<MonthlyTopFuelChartProps> = ({
 
       {/* Tables Section: 2 Tabbed Modes */}
       <div className="p-4 md:p-6">
-        {/* Table View Toggle */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-4">
           <div className="flex items-center gap-2">
             <FileSpreadsheet className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
             <h4 className="font-bold text-sm text-slate-900 dark:text-white">
               {activeTab === 'champions'
-                ? 'ตารางที่ 1: สรุปคันที่เติมน้ำมันเยอะสุดในแต่ละเดือน (Monthly Champions Matrix)'
-                : `ตารางที่ 2: รายการจัดอันดับยอดเติมน้ำมันทุกคันประจำเดือน (${activeMonth === 'total' ? 'ยอดรวมสะสม' : MONTH_CONFIG[activeMonth]?.label})`}
+                ? `ตารางที่ 1: สรุปคันที่เติมน้ำมันเยอะสุดในแต่ละเดือน (${
+                    yearScope === '2569' ? 'ปี 2569' : yearScope === '2570' ? 'ปี 2570' : 'ปี 2569 - 2570'
+                  })`
+                : `ตารางที่ 2: รายการจัดอันดับยอดเติมน้ำมันทุกคันประจำเดือน (${activeMonth === 'total' ? 'ยอดรวมสะสม' : MONTH_CONFIG[activeMonth]?.thaiName})`}
             </h4>
           </div>
 
@@ -760,7 +804,7 @@ export const MonthlyTopFuelChart: React.FC<MonthlyTopFuelChartProps> = ({
                   : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
               }`}
             >
-              ตารางแชมป์ทุกเดือน (Side-by-Side)
+              ตารางแชมป์ทุกเดือน ({visibleMonths.length} ด.)
             </button>
             <button
               type="button"
@@ -771,7 +815,7 @@ export const MonthlyTopFuelChart: React.FC<MonthlyTopFuelChartProps> = ({
                   : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
               }`}
             >
-              ตารางจัดอันดับรถทั้งฟลีท (22 คัน)
+              ตารางจัดอันดับรถทั้งฟลีท ({vehicles.length} คัน)
             </button>
           </div>
         </div>
@@ -797,7 +841,7 @@ export const MonthlyTopFuelChart: React.FC<MonthlyTopFuelChartProps> = ({
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-200 dark:divide-slate-700 bg-white dark:bg-slate-800">
-                {allMonths.map((m) => {
+                {visibleMonths.map((m) => {
                   const conf = MONTH_CONFIG[m];
                   const champ = monthlyChampions[m];
                   const isSelected = activeMonth === m;
@@ -808,11 +852,11 @@ export const MonthlyTopFuelChart: React.FC<MonthlyTopFuelChartProps> = ({
                         <td className="px-3 py-3 font-bold text-slate-800 dark:text-white">
                           <span className="flex items-center gap-1.5">
                             <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: conf.color }} />
-                            <span>{conf.label}</span>
+                            <span>{conf.thaiName}</span>
                           </span>
                         </td>
                         <td colSpan={10} className="px-3 py-3 text-slate-400 italic">
-                          เว้นว่างไว้เพื่อรอคีย์ข้อมูลจริง (คลิกปุ่ม &quot;แก้ไข&quot; เพื่อใส่ตัวเลขได้ทันที)
+                          เว้นว่างไว้เพื่อรอคีย์ข้อมูลจริง (คลิกปุ่ม &quot;แก้ไขข้อมูล&quot; ในตารางหลักเพื่อใส่ตัวเลขได้ทันที)
                         </td>
                         <td className="px-3 py-3 text-center">
                           <button
@@ -836,15 +880,13 @@ export const MonthlyTopFuelChart: React.FC<MonthlyTopFuelChartProps> = ({
                         isSelected ? 'bg-amber-50/40 dark:bg-amber-950/20 font-medium' : ''
                       }`}
                     >
-                      {/* Month */}
                       <td className="px-3 py-3 font-bold text-slate-800 dark:text-white">
                         <div className="flex items-center gap-1.5">
                           <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: conf.color }} />
-                          <span>{conf.label}</span>
+                          <span>{conf.thaiName}</span>
                         </div>
                       </td>
 
-                      {/* Plate */}
                       <td className="px-3 py-3 font-black text-slate-900 dark:text-white">
                         <button
                           type="button"
@@ -856,37 +898,30 @@ export const MonthlyTopFuelChart: React.FC<MonthlyTopFuelChartProps> = ({
                         </button>
                       </td>
 
-                      {/* Branch */}
                       <td className="px-3 py-3 text-center text-slate-600 dark:text-slate-300">
                         {vehicle.branch}
                       </td>
 
-                      {/* Cost */}
                       <td className="px-3 py-3 text-center font-black text-amber-600 dark:text-amber-400 bg-amber-50/50 dark:bg-amber-950/30">
                         {numFormat(cost, 0, 2)}
                       </td>
 
-                      {/* Fuel (Liters) */}
                       <td className="px-3 py-3 text-center text-slate-700 dark:text-slate-300">
                         {numFormat(fuel, 0, 1)}
                       </td>
 
-                      {/* Distance */}
                       <td className="px-3 py-3 text-center text-slate-700 dark:text-slate-300">
                         {numFormat(dist)}
                       </td>
 
-                      {/* Efficiency */}
                       <td className="px-3 py-3 text-center font-semibold text-slate-800 dark:text-slate-200">
                         {eff > 0 ? numFormat(eff, 0, 2) : '-'}
                       </td>
 
-                      {/* Cost/Km */}
                       <td className="px-3 py-3 text-center font-semibold text-slate-800 dark:text-slate-200">
                         {cKm > 0 ? numFormat(cKm, 0, 2) : '-'}
                       </td>
 
-                      {/* Limit Usage */}
                       <td className="px-3 py-3 text-center">
                         <span className={`px-2 py-0.5 rounded font-bold text-[11px] ${
                           limitUsage >= 100
@@ -897,7 +932,6 @@ export const MonthlyTopFuelChart: React.FC<MonthlyTopFuelChartProps> = ({
                         </span>
                       </td>
 
-                      {/* Driver */}
                       <td className="px-3 py-3 text-left">
                         {drivers.filter(Boolean).length > 0 ? (
                           <span className="text-emerald-700 dark:text-emerald-300 font-medium">
@@ -908,12 +942,10 @@ export const MonthlyTopFuelChart: React.FC<MonthlyTopFuelChartProps> = ({
                         )}
                       </td>
 
-                      {/* Plan */}
                       <td className="px-3 py-3 text-center">
                         {getPlanBadge(vehicle.plan)}
                       </td>
 
-                      {/* Action */}
                       <td className="px-3 py-3 text-center">
                         <div className="flex items-center justify-center gap-1.5">
                           <button
@@ -977,7 +1009,6 @@ export const MonthlyTopFuelChart: React.FC<MonthlyTopFuelChartProps> = ({
                         isTop1 ? 'bg-amber-50/50 dark:bg-amber-950/20 font-medium' : ''
                       }`}
                     >
-                      {/* Rank */}
                       <td className="px-3 py-2.5 text-center font-bold">
                         {isTop1 ? (
                           <span className="w-5 h-5 rounded-full bg-amber-500 text-slate-950 font-black inline-flex items-center justify-center text-[10px]">
@@ -988,7 +1019,6 @@ export const MonthlyTopFuelChart: React.FC<MonthlyTopFuelChartProps> = ({
                         )}
                       </td>
 
-                      {/* Plate */}
                       <td className="px-3 py-2.5 font-black text-slate-900 dark:text-white">
                         <button
                           type="button"
@@ -1000,12 +1030,10 @@ export const MonthlyTopFuelChart: React.FC<MonthlyTopFuelChartProps> = ({
                         </button>
                       </td>
 
-                      {/* Branch */}
                       <td className="px-3 py-2.5 text-center text-slate-600 dark:text-slate-300">
                         {r.vehicle.branch}
                       </td>
 
-                      {/* Cost */}
                       <td className={`px-3 py-2.5 text-center font-black ${
                         isTop1
                           ? 'text-amber-600 dark:text-amber-400 bg-amber-50/50 dark:bg-amber-950/30'
@@ -1016,17 +1044,14 @@ export const MonthlyTopFuelChart: React.FC<MonthlyTopFuelChartProps> = ({
                         {numFormat(r.cost, 0, 2)}
                       </td>
 
-                      {/* Fuel (Liters) */}
                       <td className="px-3 py-2.5 text-center text-slate-700 dark:text-slate-300">
                         {numFormat(r.fuel, 0, 1)}
                       </td>
 
-                      {/* Limit */}
                       <td className="px-3 py-2.5 text-center text-slate-500 dark:text-slate-400">
                         {numFormat(r.limit)}
                       </td>
 
-                      {/* Limit Usage */}
                       <td className="px-3 py-2.5 text-center">
                         <span className={`px-2 py-0.5 rounded font-bold text-[11px] ${
                           r.limitUsage >= 100
@@ -1037,27 +1062,22 @@ export const MonthlyTopFuelChart: React.FC<MonthlyTopFuelChartProps> = ({
                         </span>
                       </td>
 
-                      {/* Distance */}
                       <td className="px-3 py-2.5 text-center text-slate-700 dark:text-slate-300">
                         {numFormat(r.dist)}
                       </td>
 
-                      {/* Jobs */}
                       <td className="px-3 py-2.5 text-center text-slate-700 dark:text-slate-300">
                         {r.jobs}
                       </td>
 
-                      {/* Cost/Km */}
                       <td className="px-3 py-2.5 text-center text-slate-800 dark:text-slate-200">
                         {r.cKm > 0 ? numFormat(r.cKm, 0, 2) : '-'}
                       </td>
 
-                      {/* Cost/Job */}
                       <td className="px-3 py-2.5 text-center text-slate-800 dark:text-slate-200">
                         {r.cJob > 0 ? numFormat(r.cJob, 0, 2) : '-'}
                       </td>
 
-                      {/* Driver */}
                       <td className="px-3 py-2.5 text-left text-slate-600 dark:text-slate-300">
                         {r.drivers.filter(Boolean).length > 0 ? (
                           <span className="text-emerald-700 dark:text-emerald-300 font-medium">
@@ -1068,7 +1088,6 @@ export const MonthlyTopFuelChart: React.FC<MonthlyTopFuelChartProps> = ({
                         )}
                       </td>
 
-                      {/* Plan */}
                       <td className="px-3 py-2.5 text-center">
                         {getPlanBadge(r.vehicle.plan)}
                       </td>

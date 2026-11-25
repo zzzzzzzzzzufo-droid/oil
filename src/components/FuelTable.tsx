@@ -12,7 +12,14 @@ import {
   Users,
   Flame
 } from 'lucide-react';
-import { Vehicle, MonthKey, MONTH_CONFIG } from '../types';
+import {
+  Vehicle,
+  MonthKey,
+  MONTH_CONFIG,
+  ALL_MONTH_KEYS,
+  MONTHS_2569,
+  MONTHS_2570
+} from '../types';
 import {
   numFormat,
   calculateVehicleTotals,
@@ -49,6 +56,9 @@ export const FuelTable: React.FC<FuelTableProps> = ({
     }
   };
 
+  // Year tab in the month selector UI (keeps 19 months organized & clean)
+  const [selectorYear, setSelectorYear] = useState<2569 | 2570>(2569);
+
   // Toggle individual month in multi-selection (must keep at least 1 month)
   const toggleMonthSelection = (m: MonthKey) => {
     if (activeMonths.includes(m)) {
@@ -56,53 +66,84 @@ export const FuelTable: React.FC<FuelTableProps> = ({
         setActiveMonths(activeMonths.filter((item) => item !== m));
       }
     } else {
-      // Keep chronological order: m6, m7, m8, m9, m10, m11
-      const all: MonthKey[] = ['m6', 'm7', 'm8', 'm9', 'm10', 'm11'];
-      const next = all.filter((item) => activeMonths.includes(item) || item === m);
+      const next = ALL_MONTH_KEYS.filter((item) => activeMonths.includes(item) || item === m);
       setActiveMonths(next);
     }
   };
 
-  // Presets
-  const applyPreset = (preset: 'initial3' | 'mid3' | 'latest3' | 'q4' | 'all6') => {
+  // Presets across 2569 & 2570
+  type PresetKey =
+    | 'initial3'
+    | 'q4_69'
+    | 'all_69'
+    | 'q1_70'
+    | 'q2_70'
+    | 'q3_70'
+    | 'q4_70'
+    | 'all_70'
+    | 'all_19';
+
+  const applyPreset = (preset: PresetKey) => {
     switch (preset) {
       case 'initial3':
         setActiveMonths(['m6', 'm7', 'm8']);
+        setSelectorYear(2569);
         break;
-      case 'mid3':
-        setActiveMonths(['m7', 'm8', 'm9']);
+      case 'q4_69':
+        setActiveMonths(['m10', 'm11', 'm12']);
+        setSelectorYear(2569);
         break;
-      case 'latest3':
-        setActiveMonths(['m9', 'm10', 'm11']);
+      case 'all_69':
+        setActiveMonths([...MONTHS_2569]);
+        setSelectorYear(2569);
         break;
-      case 'q4':
-        setActiveMonths(['m10', 'm11']);
+      case 'q1_70':
+        setActiveMonths(['y70_m1', 'y70_m2', 'y70_m3']);
+        setSelectorYear(2570);
         break;
-      case 'all6':
-        setActiveMonths(['m6', 'm7', 'm8', 'm9', 'm10', 'm11']);
+      case 'q2_70':
+        setActiveMonths(['y70_m4', 'y70_m5', 'y70_m6']);
+        setSelectorYear(2570);
+        break;
+      case 'q3_70':
+        setActiveMonths(['y70_m7', 'y70_m8', 'y70_m9']);
+        setSelectorYear(2570);
+        break;
+      case 'q4_70':
+        setActiveMonths(['y70_m10', 'y70_m11', 'y70_m12']);
+        setSelectorYear(2570);
+        break;
+      case 'all_70':
+        setActiveMonths([...MONTHS_2570]);
+        setSelectorYear(2570);
+        break;
+      case 'all_19':
+        setActiveMonths([...ALL_MONTH_KEYS]);
         break;
     }
   };
+
+  const isExactPreset = (keys: MonthKey[]) =>
+    activeMonths.length === keys.length && keys.every((k) => activeMonths.includes(k));
 
   // Collapsible column states
   const [showLimit, setShowLimit] = useState(true);
   const [showJobs, setShowJobs] = useState(true);
 
   // Month collapse states (fold/unfold whole month)
-  const [collapsedMonths, setCollapsedMonths] = useState<Record<MonthKey, boolean>>({
-    m6: false,
-    m7: false,
-    m8: false,
-    m9: false,
-    m10: false,
-    m11: false
+  const [collapsedMonths, setCollapsedMonths] = useState<Record<MonthKey, boolean>>(() => {
+    const initial = {} as Record<MonthKey, boolean>;
+    ALL_MONTH_KEYS.forEach((k) => {
+      initial[k] = false;
+    });
+    return initial;
   });
 
   const toggleMonthCollapse = (m: MonthKey) => {
     setCollapsedMonths((prev) => ({ ...prev, [m]: !prev[m] }));
   };
 
-  // Dynamic Fleet Aggregate Totals based ONLY on activeSelectedMonths
+  // Dynamic Fleet Aggregate Totals based ONLY on activeMonths
   let fleetDist = 0;
   let fleetFuel = 0;
   let fleetCost = 0;
@@ -110,19 +151,18 @@ export const FuelTable: React.FC<FuelTableProps> = ({
   let fleetTotalLimit = 0;
 
   // Individual month totals
-  const monthlyFleetTotals: Record<MonthKey, { dist: number; fuel: number; cost: number; jobs: number; limit: number }> = {
-    m6: { dist: 0, fuel: 0, cost: 0, jobs: 0, limit: 0 },
-    m7: { dist: 0, fuel: 0, cost: 0, jobs: 0, limit: 0 },
-    m8: { dist: 0, fuel: 0, cost: 0, jobs: 0, limit: 0 },
-    m9: { dist: 0, fuel: 0, cost: 0, jobs: 0, limit: 0 },
-    m10: { dist: 0, fuel: 0, cost: 0, jobs: 0, limit: 0 },
-    m11: { dist: 0, fuel: 0, cost: 0, jobs: 0, limit: 0 }
-  };
+  const monthlyFleetTotals = {} as Record<
+    MonthKey,
+    { dist: number; fuel: number; cost: number; jobs: number; limit: number }
+  >;
+  ALL_MONTH_KEYS.forEach((k) => {
+    monthlyFleetTotals[k] = { dist: 0, fuel: 0, cost: 0, jobs: 0, limit: 0 };
+  });
 
   vehicles.forEach((car) => {
     const lim = car.limit || 0;
 
-    (['m6', 'm7', 'm8', 'm9', 'm10', 'm11'] as MonthKey[]).forEach((mKey) => {
+    ALL_MONTH_KEYS.forEach((mKey) => {
       const data = car[mKey] || { dist: 0, fuel: 0, cost: 0, jobs: 0 };
       monthlyFleetTotals[mKey].dist += data.dist || 0;
       monthlyFleetTotals[mKey].fuel += data.fuel || 0;
@@ -157,11 +197,15 @@ export const FuelTable: React.FC<FuelTableProps> = ({
   const totalSummaryColSpan = 6 + (showLimit ? 1 : 0) + (showJobs ? 1 : 0);
 
   // Descriptive label for summary column
-  const summaryTitle = activeMonths.length === 3 && activeMonths.includes('m6') && activeMonths.includes('m7') && activeMonths.includes('m8')
+  const summaryTitle = isExactPreset(['m6', 'm7', 'm8'])
     ? 'ภาพรวม 3 เดือนเริ่มต้น (มิ.ย. - ส.ค. 69)'
-    : activeMonths.length === 6
-    ? 'ภาพรวม 6 เดือนเต็ม (มิ.ย. - พ.ย. 69)'
-    : `ภาพรวม ${activeMonths.length} เดือน (${activeMonths.map((m) => MONTH_CONFIG[m]?.shortLabel || m).join(', ')})`;
+    : isExactPreset(MONTHS_2569)
+    ? 'ภาพรวมปี 2569 (มิ.ย. - ธ.ค. 69)'
+    : isExactPreset(MONTHS_2570)
+    ? 'ภาพรวมทั้งปี 2570 (ม.ค. - ธ.ค. 70)'
+    : activeMonths.length === ALL_MONTH_KEYS.length
+    ? 'ภาพรวมครบ 19 เดือน (มิ.ย. 69 - ธ.ค. 70)'
+    : `ภาพรวม ${activeMonths.length} เดือน (${activeMonths.slice(0, 4).map((m) => MONTH_CONFIG[m]?.shortYearLabel || m).join(', ')}${activeMonths.length > 4 ? ` +${activeMonths.length - 4}` : ''})`;
 
   return (
     <div
@@ -177,7 +221,7 @@ export const FuelTable: React.FC<FuelTableProps> = ({
               ตารางที่ 2: วิเคราะห์ต้นทุนงาน ประสิทธิภาพน้ำมัน และปริมาณ (Integrated Fuel & Operations)
             </h3>
             <p className="text-[11px] text-slate-300">
-              วิเคราะห์ความสัมพันธ์ระหว่างระยะทาง น้ำมัน วงเงิน และจำนวนงาน พร้อมระบบฟิลเตอร์เลือกเดือน (มิ.ย. - พ.ย. 69) และย่อ/ขยายคอลัมน์ระดับมือโปร
+              วิเคราะห์ความสัมพันธ์ระหว่างระยะทาง น้ำมัน วงเงิน และจำนวนงาน รองรับข้อมูลข้ามปี (มิ.ย. 69 - ธ.ค. 70) พร้อมย่อ/ขยายคอลัมน์ระดับมือโปร
             </p>
           </div>
         </div>
@@ -302,124 +346,196 @@ export const FuelTable: React.FC<FuelTableProps> = ({
               <span>ฟิลเตอร์เลือกเดือน (Period Multi-Selector):</span>
             </div>
 
-            {/* Presets */}
+            {/* Presets across 2569 & 2570 */}
             <div className="flex flex-wrap items-center gap-1 bg-white dark:bg-slate-700/60 p-1 rounded-xl border border-slate-200 dark:border-slate-600 shadow-2xs">
               <button
                 type="button"
                 onClick={() => applyPreset('initial3')}
                 className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition-all ${
-                  activeMonths.length === 3 && activeMonths.includes('m6') && activeMonths.includes('m7') && activeMonths.includes('m8')
+                  isExactPreset(['m6', 'm7', 'm8'])
                     ? 'bg-blue-600 text-white shadow-xs'
                     : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-600'
                 }`}
                 title="ค่าเริ่มต้น: วิเคราะห์รวม 3 เดือน (มิ.ย. - ส.ค. 69)"
               >
-                ⭐ 3 เดือนเริ่มต้น (มิ.ย. - ส.ค.)
+                ⭐ 3 เดือนเริ่มต้น (มิ.ย.-ส.ค. 69)
               </button>
 
               <button
                 type="button"
-                onClick={() => applyPreset('mid3')}
+                onClick={() => applyPreset('q4_69')}
                 className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition-all ${
-                  activeMonths.length === 3 && activeMonths.includes('m7') && activeMonths.includes('m8') && activeMonths.includes('m9')
-                    ? 'bg-blue-600 text-white shadow-xs'
-                    : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-600'
-                }`}
-                title="วิเคราะห์ 3 เดือนกลาง (ก.ค. - ก.ย. 69)"
-              >
-                3 เดือนกลาง (ก.ค. - ก.ย.)
-              </button>
-
-              <button
-                type="button"
-                onClick={() => applyPreset('latest3')}
-                className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition-all ${
-                  activeMonths.length === 3 && activeMonths.includes('m9') && activeMonths.includes('m10') && activeMonths.includes('m11')
-                    ? 'bg-purple-600 text-white shadow-xs'
-                    : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-600'
-                }`}
-                title="วิเคราะห์ 3 เดือนล่าสุด (ก.ย. - พ.ย. 69)"
-              >
-                3 เดือนล่าสุด (ก.ย. - พ.ย.)
-              </button>
-
-              <button
-                type="button"
-                onClick={() => applyPreset('q4')}
-                className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition-all ${
-                  activeMonths.length === 2 && activeMonths.includes('m10') && activeMonths.includes('m11')
+                  isExactPreset(['m10', 'm11', 'm12'])
                     ? 'bg-pink-600 text-white shadow-xs'
                     : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-600'
                 }`}
-                title="ไตรมาส 4 (ต.ค. - พ.ย. 69)"
+                title="ไตรมาส 4 ปี 2569 (ต.ค. - ธ.ค. 69)"
               >
-                ไตรมาส 4 (ต.ค. - พ.ย.)
+                Q4/69 (ต.ค.-ธ.ค.)
               </button>
 
               <button
                 type="button"
-                onClick={() => applyPreset('all6')}
+                onClick={() => applyPreset('all_69')}
                 className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition-all ${
-                  activeMonths.length === 6
+                  isExactPreset(MONTHS_2569)
                     ? 'bg-indigo-600 text-white shadow-xs'
                     : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-600'
                 }`}
-                title="แสดงครบทั้ง 6 เดือน (มิ.ย. - พ.ย. 69)"
+                title="ทั้ง 7 เดือนของปี 2569 (มิ.ย. - ธ.ค. 69)"
               >
-                ครบ 6 เดือน (มิ.ย. - พ.ย.)
+                ปี 2569 (7 ด.)
+              </button>
+
+              <span className="h-4 w-px bg-slate-200 dark:bg-slate-600 mx-0.5 hidden sm:inline-block" />
+
+              <button
+                type="button"
+                onClick={() => applyPreset('q1_70')}
+                className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition-all ${
+                  isExactPreset(['y70_m1', 'y70_m2', 'y70_m3'])
+                    ? 'bg-teal-600 text-white shadow-xs'
+                    : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-600'
+                }`}
+                title="ไตรมาส 1 ปี 2570 (ม.ค. - มี.ค. 70)"
+              >
+                Q1/70 (ม.ค.-มี.ค.)
+              </button>
+
+              <button
+                type="button"
+                onClick={() => applyPreset('q2_70')}
+                className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition-all ${
+                  isExactPreset(['y70_m4', 'y70_m5', 'y70_m6'])
+                    ? 'bg-amber-600 text-white shadow-xs'
+                    : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-600'
+                }`}
+                title="ไตรมาส 2 ปี 2570 (เม.ย. - มิ.ย. 70)"
+              >
+                Q2/70
+              </button>
+
+              <button
+                type="button"
+                onClick={() => applyPreset('q3_70')}
+                className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition-all ${
+                  isExactPreset(['y70_m7', 'y70_m8', 'y70_m9'])
+                    ? 'bg-emerald-600 text-white shadow-xs'
+                    : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-600'
+                }`}
+                title="ไตรมาส 3 ปี 2570 (ก.ค. - ก.ย. 70)"
+              >
+                Q3/70
+              </button>
+
+              <button
+                type="button"
+                onClick={() => applyPreset('q4_70')}
+                className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition-all ${
+                  isExactPreset(['y70_m10', 'y70_m11', 'y70_m12'])
+                    ? 'bg-rose-600 text-white shadow-xs'
+                    : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-600'
+                }`}
+                title="ไตรมาส 4 ปี 2570 (ต.ค. - ธ.ค. 70)"
+              >
+                Q4/70
+              </button>
+
+              <button
+                type="button"
+                onClick={() => applyPreset('all_70')}
+                className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition-all ${
+                  isExactPreset(MONTHS_2570)
+                    ? 'bg-cyan-700 text-white shadow-xs'
+                    : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-600'
+                }`}
+                title="แสดงครบทั้ง 12 เดือนของปี 2570"
+              >
+                ทั้งปี 2570 (12 ด.)
+              </button>
+
+              <button
+                type="button"
+                onClick={() => applyPreset('all_19')}
+                className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition-all ${
+                  isExactPreset(ALL_MONTH_KEYS)
+                    ? 'bg-slate-900 dark:bg-white text-white dark:text-slate-900 shadow-xs'
+                    : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-600'
+                }`}
+                title="แสดงทั้งหมด 19 เดือน (มิ.ย. 69 - ธ.ค. 70)"
+              >
+                ทั้งหมด (19 ด.)
               </button>
             </div>
           </div>
 
-          <div className="text-[11px] text-slate-500 dark:text-slate-400 font-medium">
-            แสดง <b className="text-blue-600 dark:text-blue-400">{activeMonths.length}</b> เดือน • ยอดรวมและอัตราเฉลี่ยคำนวณตามเดือนที่เลือกอัตโนมัติ
+          <div className="text-[11px] text-slate-500 dark:text-slate-400 font-medium shrink-0">
+            แสดง <b className="text-blue-600 dark:text-blue-400">{activeMonths.length}</b> เดือน • คำนวณยอดรวมอัตโนมัติ
           </div>
         </div>
 
-        {/* Individual Month Checkbox Pills & Column Toggles */}
+        {/* Year Switcher + Individual Month Selector */}
         <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-slate-200/80 dark:border-slate-700/80 text-xs">
-          {/* Checkboxes for each month */}
-          <div className="flex flex-wrap items-center gap-1.5">
-            <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 mr-1">
-              ปรับแต่งเดือน:
-            </span>
+          <div className="flex flex-wrap items-center gap-2">
+            {/* Year Segmented Switch */}
+            <div className="inline-flex rounded-lg bg-slate-200/80 dark:bg-slate-700 p-0.5 shrink-0">
+              <button
+                type="button"
+                onClick={() => setSelectorYear(2569)}
+                className={`px-2.5 py-1 rounded-md text-[11px] font-bold transition-all ${
+                  selectorYear === 2569
+                    ? 'bg-white dark:bg-slate-800 text-blue-700 dark:text-blue-300 shadow-xs'
+                    : 'text-slate-600 dark:text-slate-300 hover:text-slate-900'
+                }`}
+              >
+                ปี 2569 ({MONTHS_2569.filter((m) => activeMonths.includes(m)).length}/7)
+              </button>
+              <button
+                type="button"
+                onClick={() => setSelectorYear(2570)}
+                className={`px-2.5 py-1 rounded-md text-[11px] font-bold transition-all ${
+                  selectorYear === 2570
+                    ? 'bg-white dark:bg-slate-800 text-teal-700 dark:text-teal-300 shadow-xs'
+                    : 'text-slate-600 dark:text-slate-300 hover:text-slate-900'
+                }`}
+              >
+                ปี 2570 ({MONTHS_2570.filter((m) => activeMonths.includes(m)).length}/12)
+              </button>
+            </div>
 
-            {(['m6', 'm7', 'm8', 'm9', 'm10', 'm11'] as MonthKey[]).map((mKey) => {
-              const isSelected = activeMonths.includes(mKey);
-              const conf = MONTH_CONFIG[mKey];
-              const isNew = mKey === 'm9' || mKey === 'm10' || mKey === 'm11';
+            {/* Checkboxes for months in the selected year */}
+            <div className="flex flex-wrap items-center gap-1.5">
+              {(selectorYear === 2569 ? MONTHS_2569 : MONTHS_2570).map((mKey) => {
+                const isSelected = activeMonths.includes(mKey);
+                const conf = MONTH_CONFIG[mKey];
 
-              let activeBg = 'bg-blue-700 dark:bg-blue-600 text-white border-blue-700 dark:border-blue-600 ring-2 ring-blue-400/20';
-              if (mKey === 'm9') activeBg = 'bg-emerald-600 text-white border-emerald-600 ring-2 ring-emerald-400/30';
-              if (mKey === 'm10') activeBg = 'bg-purple-600 text-white border-purple-600 ring-2 ring-purple-400/30';
-              if (mKey === 'm11') activeBg = 'bg-pink-600 text-white border-pink-600 ring-2 ring-pink-400/30';
-
-              return (
-                <button
-                  key={mKey}
-                  type="button"
-                  onClick={() => toggleMonthSelection(mKey)}
-                  className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all border shadow-2xs ${
-                    isSelected
-                      ? activeBg
-                      : 'bg-white dark:bg-slate-700 text-slate-600 dark:text-slate-300 border-slate-300 dark:border-slate-600 hover:border-slate-400'
-                  }`}
-                  title={`คลิกเพื่อ ${isSelected ? 'ซ่อน' : 'แสดง'} ${conf.label}`}
-                >
-                  {isSelected ? (
-                    <CheckSquare className="w-3.5 h-3.5" />
-                  ) : (
-                    <Square className="w-3.5 h-3.5 text-slate-400" />
-                  )}
-                  <span>{conf.label}</span>
-                  {isNew && (
-                    <span className={`text-[9px] px-1.5 py-0.2 rounded font-extrabold ${isSelected ? 'bg-white/20 text-white' : 'bg-slate-200 dark:bg-slate-600 text-slate-700 dark:text-slate-200'}`}>
-                      {mKey === 'm9' ? 'ก.ย.' : mKey === 'm10' ? 'ต.ค.' : 'พ.ย.'}
-                    </span>
-                  )}
-                </button>
-              );
-            })}
+                return (
+                  <button
+                    key={mKey}
+                    type="button"
+                    onClick={() => toggleMonthSelection(mKey)}
+                    style={
+                      isSelected
+                        ? { backgroundColor: conf.color, borderColor: conf.color }
+                        : undefined
+                    }
+                    className={`px-2.5 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-all border shadow-2xs ${
+                      isSelected
+                        ? 'text-white ring-2 ring-slate-400/20'
+                        : 'bg-white dark:bg-slate-700 text-slate-600 dark:text-slate-300 border-slate-300 dark:border-slate-600 hover:border-slate-400'
+                    }`}
+                    title={`คลิกเพื่อ ${isSelected ? 'ซ่อน' : 'แสดง'} ${conf.thaiName}`}
+                  >
+                    {isSelected ? (
+                      <CheckSquare className="w-3.5 h-3.5" />
+                    ) : (
+                      <Square className="w-3.5 h-3.5 text-slate-400" />
+                    )}
+                    <span>{conf.shortYearLabel}</span>
+                  </button>
+                );
+              })}
+            </div>
           </div>
 
           {/* Column View Controls */}
@@ -665,7 +781,7 @@ export const FuelTable: React.FC<FuelTableProps> = ({
                     const data = car[mKey] || { dist: 0, fuel: 0, cost: 0, jobs: 0 };
                     const mStats = totals[mKey] || { eff: 0, cKm: 0, cJob: 0 };
                     const isCollapsed = collapsedMonths[mKey];
-                    const isNewMonth = mKey === 'm9' || mKey === 'm10' || mKey === 'm11';
+                    const isNewMonth = !['m6', 'm7', 'm8'].includes(mKey);
                     const isEmpty = isNewMonth && !data.dist && !data.fuel && !data.cost && !data.jobs;
 
                     if (isCollapsed) {
@@ -876,7 +992,7 @@ export const FuelTable: React.FC<FuelTableProps> = ({
         <div className="flex items-center gap-2">
           <Info className="w-4 h-4 text-purple-600 shrink-0" />
           <span>
-            <b>ระบบรองรับเดือน 6 ถึง 11 (มิ.ย. - พ.ย. 69):</b> ข้อมูลเดือน 9, 10, 11 เว้นว่างไว้รอคีย์ข้อมูล สามารถคลิกที่แถวของรถคันใดก็ได้เพื่อเปิดหน้าต่างกรอกข้อมูลย้อนหลังหรืออัปเดตแบบเรียลไทม์
+            <b>ระบบรองรับปี 2569 (มิ.ย. - ธ.ค.) และปี 2570 (ม.ค. - ธ.ค.) รวม 19 เดือน:</b> เดือนที่ยังไม่ได้บันทึกจะเว้นว่างรอคีย์ข้อมูล คลิกที่แถวรถคันใดก็ได้เพื่อกรอกหรืออัปเดตตัวเลขแบบเรียลไทม์
           </span>
         </div>
         {onEditCar && vehicles.length > 0 && (

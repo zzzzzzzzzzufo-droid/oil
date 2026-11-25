@@ -1,6 +1,6 @@
-import { Vehicle } from './types';
+import { Vehicle, createEmptyMonthData } from './types';
 
-export const INITIAL_FLEET_DATA: Omit<Vehicle, 'id'>[] = [
+const RAW_INITIAL_FLEET_DATA: Omit<Vehicle, 'id'>[] = [
   {
     order: 1,
     plate: "ฒจ 99",
@@ -442,3 +442,20 @@ export const INITIAL_FLEET_DATA: Omit<Vehicle, 'id'>[] = [
     notes: "รถกระบะขนส่งสแปร์กองกลาง รองรับงานฉุกเฉินและทดแทนคันซ่อมบำรุง"
   }
 ];
+
+export const INITIAL_FLEET_DATA: Omit<Vehicle, 'id'>[] = RAW_INITIAL_FLEET_DATA.map((item) => ({
+  ...item,
+  m12: item.m12 || createEmptyMonthData(),
+  y70_m1: item.y70_m1 || createEmptyMonthData(),
+  y70_m2: item.y70_m2 || createEmptyMonthData(),
+  y70_m3: item.y70_m3 || createEmptyMonthData(),
+  y70_m4: item.y70_m4 || createEmptyMonthData(),
+  y70_m5: item.y70_m5 || createEmptyMonthData(),
+  y70_m6: item.y70_m6 || createEmptyMonthData(),
+  y70_m7: item.y70_m7 || createEmptyMonthData(),
+  y70_m8: item.y70_m8 || createEmptyMonthData(),
+  y70_m9: item.y70_m9 || createEmptyMonthData(),
+  y70_m10: item.y70_m10 || createEmptyMonthData(),
+  y70_m11: item.y70_m11 || createEmptyMonthData(),
+  y70_m12: item.y70_m12 || createEmptyMonthData()
+}));

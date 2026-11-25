@@ -15,7 +15,8 @@ import {
   Sparkles,
   Info
 } from 'lucide-react';
-import { Vehicle, MonthKey, MONTH_CONFIG } from '../types';
+import { Vehicle, MonthKey, MONTHS_2569, MONTHS_2570, ALL_MONTH_KEYS, MONTH_CONFIG } from '../types';
+import { getVehicleMonthData } from '../utils/calculations';
 
 interface DriverRosterModalProps {
   isOpen: boolean;
@@ -25,6 +26,14 @@ interface DriverRosterModalProps {
   initialMonth?: MonthKey;
   onSaveVehicle: (id: string, updated: Partial<Vehicle>, reason: string) => Promise<void>;
 }
+
+const createEmptyDriverMap = (): Record<MonthKey, string[]> => {
+  const map = {} as Record<MonthKey, string[]>;
+  ALL_MONTH_KEYS.forEach((mKey) => {
+    map[mKey] = ['', '', ''];
+  });
+  return map;
+};
 
 export const DriverRosterModal: React.FC<DriverRosterModalProps> = ({
   isOpen,
@@ -36,19 +45,23 @@ export const DriverRosterModal: React.FC<DriverRosterModalProps> = ({
 }) => {
   const [currentCarIndex, setCurrentCarIndex] = useState(0);
   const [activeMonth, setActiveMonth] = useState<MonthKey>(initialMonth);
+  const [selectedYear, setSelectedYear] = useState<2569 | 2570>(() =>
+    MONTH_CONFIG[initialMonth]?.year || 2569
+  );
   const [viewMode, setViewMode] = useState<'focused' | 'all'>('focused');
   const [saving, setSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
 
-  // Local state holding driver arrays for all 6 months of current vehicle
-  const [monthlyDrivers, setMonthlyDrivers] = useState<Record<MonthKey, string[]>>({
-    m6: ['', '', ''],
-    m7: ['', '', ''],
-    m8: ['', '', ''],
-    m9: ['', '', ''],
-    m10: ['', '', ''],
-    m11: ['', '', '']
-  });
+  // Local state holding driver arrays for all 19 months of current vehicle
+  const [monthlyDrivers, setMonthlyDrivers] = useState<Record<MonthKey, string[]>>(createEmptyDriverMap);
+
+  // Sync activeMonth and year when initialMonth prop changes
+  useEffect(() => {
+    if (initialMonth && MONTH_CONFIG[initialMonth]) {
+      setActiveMonth(initialMonth);
+      setSelectedYear(MONTH_CONFIG[initialMonth].year);
+    }
+  }, [initialMonth]);
 
   // Sync index when initialVehicle changes
   useEffect(() => {
@@ -65,30 +78,31 @@ export const DriverRosterModal: React.FC<DriverRosterModalProps> = ({
 
   useEffect(() => {
     if (currentVehicle) {
-      const getDrivers = (key: MonthKey): string[] => {
-        const raw = currentVehicle[key]?.drivers || [];
-        return [raw[0] || '', raw[1] || '', raw[2] || ''];
-      };
-
-      setMonthlyDrivers({
-        m6: getDrivers('m6'),
-        m7: getDrivers('m7'),
-        m8: getDrivers('m8'),
-        m9: getDrivers('m9'),
-        m10: getDrivers('m10'),
-        m11: getDrivers('m11')
+      const next = createEmptyDriverMap();
+      ALL_MONTH_KEYS.forEach((key) => {
+        const raw = getVehicleMonthData(currentVehicle, key).drivers || [];
+        next[key] = [raw[0] || '', raw[1] || '', raw[2] || ''];
       });
+      setMonthlyDrivers(next);
       setSaveSuccess(false);
     }
   }, [currentVehicle]);
 
   if (!isOpen || !currentVehicle) return null;
 
-  const months: MonthKey[] = ['m6', 'm7', 'm8', 'm9', 'm10', 'm11'];
+  const yearMonths: MonthKey[] = selectedYear === 2569 ? MONTHS_2569 : MONTHS_2570;
+
+  const handleYearSwitch = (year: 2569 | 2570) => {
+    setSelectedYear(year);
+    const list: MonthKey[] = year === 2569 ? MONTHS_2569 : MONTHS_2570;
+    if (!list.includes(activeMonth)) {
+      setActiveMonth(list[0]);
+    }
+  };
 
   const handleDriverChange = (month: MonthKey, slotIdx: number, value: string) => {
     setMonthlyDrivers((prev) => {
-      const updatedList = [...prev[month]];
+      const updatedList = [...(prev[month] || ['', '', ''])];
       updatedList[slotIdx] = value;
       return {
         ...prev,
@@ -104,7 +118,7 @@ export const DriverRosterModal: React.FC<DriverRosterModalProps> = ({
 
   // Copy drivers from another month
   const handleCopyFromMonth = (targetMonth: MonthKey, sourceMonth: MonthKey) => {
-    const sourceDrivers = [...monthlyDrivers[sourceMonth]];
+    const sourceDrivers = [...(monthlyDrivers[sourceMonth] || ['', '', ''])];
     setMonthlyDrivers((prev) => ({
       ...prev,
       [targetMonth]: sourceDrivers
@@ -112,15 +126,15 @@ export const DriverRosterModal: React.FC<DriverRosterModalProps> = ({
     setSaveSuccess(false);
   };
 
-  // Apply current month drivers to all future months
+  // Apply current month drivers to all future months (chronologically across 2569-2570)
   const handleApplyToRemainingMonths = (sourceMonth: MonthKey) => {
-    const sourceIndex = months.indexOf(sourceMonth);
-    const driversToCopy = [...monthlyDrivers[sourceMonth]];
+    const sourceIndex = ALL_MONTH_KEYS.indexOf(sourceMonth);
+    const driversToCopy = [...(monthlyDrivers[sourceMonth] || ['', '', ''])];
 
     setMonthlyDrivers((prev) => {
       const next = { ...prev };
-      for (let i = sourceIndex + 1; i < months.length; i++) {
-        next[months[i]] = [...driversToCopy];
+      for (let i = sourceIndex + 1; i < ALL_MONTH_KEYS.length; i++) {
+        next[ALL_MONTH_KEYS[i]] = [...driversToCopy];
       }
       return next;
     });
@@ -132,19 +146,16 @@ export const DriverRosterModal: React.FC<DriverRosterModalProps> = ({
     if (!currentVehicle) return;
     setSaving(true);
     try {
-      // Clean up trailing empty strings for storage cleanliness
-      const cleanDrivers = (arr: string[]) => {
-        return arr.map((s) => s.trim()).filter(Boolean);
-      };
+      const cleanDrivers = (arr: string[]) => arr.map((s) => s.trim()).filter(Boolean);
 
-      const payload: Partial<Vehicle> = {
-        m6: { ...currentVehicle.m6, drivers: cleanDrivers(monthlyDrivers.m6) },
-        m7: { ...currentVehicle.m7, drivers: cleanDrivers(monthlyDrivers.m7) },
-        m8: { ...currentVehicle.m8, drivers: cleanDrivers(monthlyDrivers.m8) },
-        m9: { ...(currentVehicle.m9 || { dist: 0, fuel: 0, cost: 0, jobs: 0 }), drivers: cleanDrivers(monthlyDrivers.m9) },
-        m10: { ...(currentVehicle.m10 || { dist: 0, fuel: 0, cost: 0, jobs: 0 }), drivers: cleanDrivers(monthlyDrivers.m10) },
-        m11: { ...(currentVehicle.m11 || { dist: 0, fuel: 0, cost: 0, jobs: 0 }), drivers: cleanDrivers(monthlyDrivers.m11) }
-      };
+      const payload: Partial<Vehicle> = {};
+      ALL_MONTH_KEYS.forEach((mKey) => {
+        const existing = getVehicleMonthData(currentVehicle, mKey);
+        (payload as Record<string, unknown>)[mKey] = {
+          ...existing,
+          drivers: cleanDrivers(monthlyDrivers[mKey] || [])
+        };
+      });
 
       await onSaveVehicle(
         currentVehicle.id,
@@ -220,6 +231,7 @@ export const DriverRosterModal: React.FC<DriverRosterModalProps> = ({
                 โฟกัสรายเดือน
               </button>
               <button
+                type="button"
                 onClick={() => setViewMode('all')}
                 className={`px-2.5 py-1 rounded-md transition-colors ${
                   viewMode === 'all'
@@ -227,7 +239,7 @@ export const DriverRosterModal: React.FC<DriverRosterModalProps> = ({
                     : 'text-slate-600 dark:text-slate-300 hover:text-slate-900'
                 }`}
               >
-                ภาพรวม 6 เดือน
+                ภาพรวมรายปี ({selectedYear === 2569 ? '7 ด.' : '12 ด.'})
               </button>
             </div>
 
@@ -290,14 +302,45 @@ export const DriverRosterModal: React.FC<DriverRosterModalProps> = ({
 
         {/* Modal Main Content */}
         <div className="p-4 sm:p-6 overflow-y-auto flex-1 space-y-6">
+          {/* Year Switcher Bar (Applies to both Focused & Overview modes) */}
+          <div className="flex flex-wrap items-center justify-between gap-3 bg-slate-50 dark:bg-slate-800/60 p-2.5 rounded-xl border border-slate-200 dark:border-slate-700">
+            <span className="text-xs font-bold text-slate-600 dark:text-slate-300 flex items-center gap-1.5 px-1">
+              <Calendar className="w-4 h-4 text-emerald-600" />
+              <span>เลือกปีปฏิทิน:</span>
+            </span>
+            <div className="inline-flex bg-slate-200/80 dark:bg-slate-700/80 p-0.5 rounded-lg">
+              {([2569, 2570] as const).map((yr) => {
+                const list = yr === 2569 ? MONTHS_2569 : MONTHS_2570;
+                const populatedCount = list.filter((m) => (monthlyDrivers[m] || []).some((s) => s.trim())).length;
+                return (
+                  <button
+                    key={yr}
+                    type="button"
+                    onClick={() => handleYearSwitch(yr)}
+                    className={`px-3 py-1.5 rounded-md text-xs font-bold transition-all flex items-center gap-1.5 ${
+                      selectedYear === yr
+                        ? 'bg-white dark:bg-slate-800 text-emerald-700 dark:text-emerald-300 shadow-xs'
+                        : 'text-slate-600 dark:text-slate-300 hover:text-slate-900'
+                    }`}
+                  >
+                    <span>ปี {yr} ({yr === 2569 ? 'มิ.ย.-ธ.ค.' : 'ม.ค.-ธ.ค.'})</span>
+                    <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-emerald-100 text-emerald-800 dark:bg-emerald-900/60 dark:text-emerald-200">
+                      {populatedCount}/{list.length}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
           {viewMode === 'focused' ? (
             /* FOCUSED MONTH VIEW */
             <div className="space-y-5">
               {/* Month Tabs */}
-              <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
-                {months.map((mKey) => {
+              <div className={`grid gap-2 ${selectedYear === 2569 ? 'grid-cols-3 sm:grid-cols-7' : 'grid-cols-3 sm:grid-cols-6'}`}>
+                {yearMonths.map((mKey) => {
                   const cfg = MONTH_CONFIG[mKey];
-                  const drivers = monthlyDrivers[mKey].filter(Boolean);
+                  const drivers = (monthlyDrivers[mKey] || []).filter(Boolean);
                   const isSelected = activeMonth === mKey;
                   const count = drivers.length;
 
@@ -312,7 +355,7 @@ export const DriverRosterModal: React.FC<DriverRosterModalProps> = ({
                           : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700/50'
                       }`}
                     >
-                      <span className="text-xs font-semibold">{cfg.shortLabel} 69</span>
+                      <span className="text-xs font-semibold">{cfg.shortYearLabel}</span>
                       <span
                         className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${
                           count > 0
@@ -337,29 +380,31 @@ export const DriverRosterModal: React.FC<DriverRosterModalProps> = ({
                 </div>
 
                 <div className="flex items-center gap-2">
-                  {/* Quick copy from prev month */}
-                  {months.indexOf(activeMonth) > 0 && (
+                  {/* Quick copy from prev month (chronologically across 2569-2570) */}
+                  {ALL_MONTH_KEYS.indexOf(activeMonth) > 0 && (
                     <button
                       type="button"
                       onClick={() => {
-                        const prevIdx = months.indexOf(activeMonth) - 1;
-                        handleCopyFromMonth(activeMonth, months[prevIdx]);
+                        const prevIdx = ALL_MONTH_KEYS.indexOf(activeMonth) - 1;
+                        handleCopyFromMonth(activeMonth, ALL_MONTH_KEYS[prevIdx]);
                       }}
                       className="px-2.5 py-1 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg text-slate-700 dark:text-slate-200 hover:bg-blue-50 hover:text-blue-600 dark:hover:bg-slate-600 transition-colors flex items-center gap-1 font-medium shadow-xs"
                       title="คัดลอกรายชื่อคนขับจากเดือนก่อนหน้านี้มาใส่อัตโนมัติ"
                     >
                       <Copy className="w-3 h-3 text-blue-500" />
-                      <span>คัดลอกจาก {MONTH_CONFIG[months[months.indexOf(activeMonth) - 1]].shortLabel}</span>
+                      <span>
+                        คัดลอกจาก {MONTH_CONFIG[ALL_MONTH_KEYS[ALL_MONTH_KEYS.indexOf(activeMonth) - 1]].shortYearLabel}
+                      </span>
                     </button>
                   )}
 
                   {/* Apply to remaining */}
-                  {months.indexOf(activeMonth) < months.length - 1 && (
+                  {ALL_MONTH_KEYS.indexOf(activeMonth) < ALL_MONTH_KEYS.length - 1 && (
                     <button
                       type="button"
                       onClick={() => handleApplyToRemainingMonths(activeMonth)}
                       className="px-2.5 py-1 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg text-slate-700 dark:text-slate-200 hover:bg-emerald-50 hover:text-emerald-600 dark:hover:bg-slate-600 transition-colors flex items-center gap-1 font-medium shadow-xs"
-                      title="นำรายชื่อเดือนนี้ไปใช้กับทุกเดือนถัดไปที่เหลือ"
+                      title="นำรายชื่อเดือนนี้ไปใช้กับทุกเดือนถัดไปที่เหลือ (รวมปี 2570)"
                     >
                       <Sparkles className="w-3 h-3 text-emerald-500" />
                       <span>ใช้กับเดือนที่เหลือ</span>
@@ -372,7 +417,7 @@ export const DriverRosterModal: React.FC<DriverRosterModalProps> = ({
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 {[0, 1, 2].map((slotIdx) => {
                   const meta = slotLabels[slotIdx];
-                  const val = monthlyDrivers[activeMonth][slotIdx] || '';
+                  const val = (monthlyDrivers[activeMonth] || [])[slotIdx] || '';
                   const hasValue = val.trim().length > 0;
 
                   return (
@@ -432,19 +477,19 @@ export const DriverRosterModal: React.FC<DriverRosterModalProps> = ({
               </div>
             </div>
           ) : (
-            /* ALL 6 MONTHS OVERVIEW MATRIX */
+            /* YEAR OVERVIEW MATRIX */
             <div className="space-y-4">
               <div className="flex items-center justify-between text-xs text-slate-500">
                 <span className="font-semibold">
-                  ตารางสรุปรายชื่อคนขับทั้ง 6 เดือน (มิ.ย. - พ.ย. 69) ของทะเบียน {currentVehicle.plate}
+                  ตารางสรุปรายชื่อคนขับปี {selectedYear} ({selectedYear === 2569 ? 'มิ.ย. - ธ.ค. 69' : 'ม.ค. - ธ.ค. 70'}) ของทะเบียน {currentVehicle.plate}
                 </span>
                 <span>สามารถแก้ไขชื่อในแต่ละช่องได้โดยตรง</span>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {months.map((mKey) => {
+                {yearMonths.map((mKey) => {
                   const cfg = MONTH_CONFIG[mKey];
-                  const drivers = monthlyDrivers[mKey];
+                  const drivers = monthlyDrivers[mKey] || ['', '', ''];
 
                   return (
                     <div

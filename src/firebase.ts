@@ -15,7 +15,7 @@ import {
   addDoc
 } from 'firebase/firestore';
 import firebaseConfig from '../firebase-applet-config.json';
-import { Vehicle, AuditLog } from './types';
+import { Vehicle, AuditLog, ALL_MONTH_KEYS, createEmptyMonthData } from './types';
 import { INITIAL_FLEET_DATA } from './initialData';
 
 // Initialize Firebase App
@@ -148,14 +148,24 @@ export function subscribeToFleetVehicles(
       snapshot.forEach((d) => {
         const raw = d.data() as Omit<Vehicle, 'id'>;
         presentIds.add(d.id);
+
+        const normalizedMonths = {} as Pick<Vehicle, (typeof ALL_MONTH_KEYS)[number]>;
+        ALL_MONTH_KEYS.forEach((mKey) => {
+          const existing = raw[mKey];
+          normalizedMonths[mKey] = existing
+            ? {
+                dist: existing.dist || 0,
+                fuel: existing.fuel || 0,
+                cost: existing.cost || 0,
+                jobs: existing.jobs || 0,
+                drivers: existing.drivers || []
+              }
+            : createEmptyMonthData();
+        });
+
         list.push({
           ...raw,
-          m6: { ...raw.m6, drivers: raw.m6?.drivers || [] },
-          m7: { ...raw.m7, drivers: raw.m7?.drivers || [] },
-          m8: { ...raw.m8, drivers: raw.m8?.drivers || [] },
-          m9: raw.m9 ? { ...raw.m9, drivers: raw.m9.drivers || [] } : { dist: 0, fuel: 0, cost: 0, jobs: 0, drivers: [] },
-          m10: raw.m10 ? { ...raw.m10, drivers: raw.m10.drivers || [] } : { dist: 0, fuel: 0, cost: 0, jobs: 0, drivers: [] },
-          m11: raw.m11 ? { ...raw.m11, drivers: raw.m11.drivers || [] } : { dist: 0, fuel: 0, cost: 0, jobs: 0, drivers: [] },
+          ...normalizedMonths,
           id: d.id
         });
       });

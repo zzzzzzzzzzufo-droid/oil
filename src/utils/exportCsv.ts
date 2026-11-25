@@ -1,14 +1,30 @@
-import { Vehicle } from '../types';
-import { calculateVehicleTotals } from './calculations';
+import { Vehicle, MonthKey, MONTH_CONFIG, ALL_MONTH_KEYS } from '../types';
+import { calculateVehicleTotals, getVehicleMonthData } from './calculations';
 
-export function exportFleetToCsv(vehicles: Vehicle[]) {
-  // Plan label mapping
+export function exportFleetToCsv(
+  vehicles: Vehicle[],
+  monthsToExport: MonthKey[] = ALL_MONTH_KEYS
+) {
   const planLabels: Record<string, string> = {
     urgent_sell: 'ขายด่วน P1',
     sell: 'ทยอยขาย P2',
     rebrand: 'รอ Re-brand',
     keep: 'เก็บไว้ใช้'
   };
+
+  const monthHeaders = monthsToExport.flatMap((mKey) => {
+    const label = MONTH_CONFIG[mKey]?.shortYearLabel || mKey;
+    return [
+      `${label} ระยะทาง (กม.)`,
+      `${label} น้ำมัน (ลิตร)`,
+      `${label} ค่าน้ำมัน (บาท)`,
+      `${label} กม./ลิตร`,
+      `${label} บ./กม.`,
+      `${label} บ./งาน`,
+      `${label} จำนวนงาน`,
+      `${label} คนขับ`
+    ];
+  });
 
   const headers = [
     'ลำดับ',
@@ -20,39 +36,36 @@ export function exportFleetToCsv(vehicles: Vehicle[]) {
     'แผนจัดการ',
     'ราคาประเมิน (บาท)',
     'วงเงินน้ำมันต่อเดือน (บาท)',
-    'มิ.ย. ระยะทาง (กม.)',
-    'มิ.ย. น้ำมัน (ลิตร)',
-    'มิ.ย. ค่าน้ำมัน (บาท)',
-    'มิ.ย. กม./ลิตร',
-    'มิ.ย. บ./กม.',
-    'มิ.ย. บ./งาน',
-    'มิ.ย. จำนวนงาน',
-    'ก.ค. ระยะทาง (กม.)',
-    'ก.ค. น้ำมัน (ลิตร)',
-    'ก.ค. ค่าน้ำมัน (บาท)',
-    'ก.ค. กม./ลิตร',
-    'ก.ค. บ./กม.',
-    'ก.ค. บ./งาน',
-    'ก.ค. จำนวนงาน',
-    'ส.ค. ระยะทาง (กม.)',
-    'ส.ค. น้ำมัน (ลิตร)',
-    'ส.ค. ค่าน้ำมัน (บาท)',
-    'ส.ค. กม./ลิตร',
-    'ส.ค. บ./กม.',
-    'ส.ค. บ./งาน',
-    'ส.ค. จำนวนงาน',
-    'รวม 3 เดือน ระยะทาง (กม.)',
-    'รวม 3 เดือน น้ำมัน (ลิตร)',
-    'รวม 3 เดือน ค่าน้ำมัน (บาท)',
-    'รวม 3 เดือน จำนวนงาน',
-    'เฉลี่ย 3 เดือน กม./ลิตร',
-    'เฉลี่ย 3 เดือน บ./กม.',
-    'เฉลี่ย 3 เดือน บ./งาน',
+    ...monthHeaders,
+    `รวม ${monthsToExport.length} เดือน ระยะทาง (กม.)`,
+    `รวม ${monthsToExport.length} เดือน น้ำมัน (ลิตร)`,
+    `รวม ${monthsToExport.length} เดือน ค่าน้ำมัน (บาท)`,
+    `รวม ${monthsToExport.length} เดือน จำนวนงาน`,
+    `เฉลี่ย ${monthsToExport.length} เดือน กม./ลิตร`,
+    `เฉลี่ย ${monthsToExport.length} เดือน บ./กม.`,
+    `เฉลี่ย ${monthsToExport.length} เดือน บ./งาน`,
     'ข้อเสนอแนะเชิงลึก'
   ];
 
   const rows = vehicles.map((car) => {
-    const totals = calculateVehicleTotals(car);
+    const totals = calculateVehicleTotals(car, monthsToExport);
+
+    const monthValues = monthsToExport.flatMap((mKey) => {
+      const mData = getVehicleMonthData(car, mKey);
+      const mStats = totals[mKey];
+      const driversStr = (mData.drivers || []).filter(Boolean).join(' / ');
+      return [
+        mData.dist,
+        mData.fuel,
+        mData.cost,
+        mStats.eff.toFixed(2),
+        mStats.cKm.toFixed(2),
+        mStats.cJob.toFixed(2),
+        mData.jobs,
+        `"${driversStr.replace(/"/g, '""')}"`
+      ];
+    });
+
     return [
       car.order,
       `"${car.plate}"`,
@@ -63,27 +76,7 @@ export function exportFleetToCsv(vehicles: Vehicle[]) {
       `"${planLabels[car.plan] || car.plan}"`,
       car.estimatedPrice || 0,
       car.limit || 0,
-      car.m6.dist,
-      car.m6.fuel,
-      car.m6.cost,
-      totals.m6.eff.toFixed(2),
-      totals.m6.cKm.toFixed(2),
-      totals.m6.cJob.toFixed(2),
-      car.m6.jobs,
-      car.m7.dist,
-      car.m7.fuel,
-      car.m7.cost,
-      totals.m7.eff.toFixed(2),
-      totals.m7.cKm.toFixed(2),
-      totals.m7.cJob.toFixed(2),
-      car.m7.jobs,
-      car.m8.dist,
-      car.m8.fuel,
-      car.m8.cost,
-      totals.m8.eff.toFixed(2),
-      totals.m8.cKm.toFixed(2),
-      totals.m8.cJob.toFixed(2),
-      car.m8.jobs,
+      ...monthValues,
       totals.totalDist,
       totals.totalFuel.toFixed(3),
       totals.totalCost.toFixed(2),
@@ -96,7 +89,7 @@ export function exportFleetToCsv(vehicles: Vehicle[]) {
   });
 
   const csvContent =
-    '\uFEFF' + // UTF-8 BOM for Thai support in Microsoft Excel
+    '\uFEFF' +
     [headers.join(','), ...rows.map((e) => e.join(','))].join('\n');
 
   const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });

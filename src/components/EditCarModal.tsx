@@ -3,16 +3,21 @@ import {
   X,
   Save,
   Car,
-  AlertCircle,
-  CheckCircle2,
+  Users,
   Calendar,
-  Fuel,
-  Briefcase,
-  Route,
-  Banknote,
-  Users
+  Copy
 } from 'lucide-react';
-import { Vehicle, VehiclePlan } from '../types';
+import {
+  Vehicle,
+  VehiclePlan,
+  MonthKey,
+  MONTHS_2569,
+  MONTHS_2570,
+  ALL_MONTH_KEYS,
+  MONTH_CONFIG,
+  MonthlyOperationalData
+} from '../types';
+import { getVehicleMonthData } from '../utils/calculations';
 
 interface EditCarModalProps {
   vehicle: Vehicle | null;
@@ -20,13 +25,13 @@ interface EditCarModalProps {
   onSave: (id: string, updated: Partial<Vehicle>, reason: string) => Promise<void>;
 }
 
-export const EditCarModal: React.FC<EditCarModalProps> = ({
-  vehicle,
-  onClose,
-  onSave
-}) => {
-  if (!vehicle) return null;
+const getInitDrivers = (d?: string[]) => [d?.[0] || '', d?.[1] || '', d?.[2] || ''];
 
+const EditCarModalInner: React.FC<{
+  vehicle: Vehicle;
+  onClose: () => void;
+  onSave: (id: string, updated: Partial<Vehicle>, reason: string) => Promise<void>;
+}> = ({ vehicle, onClose, onSave }) => {
   const [plate, setPlate] = useState(vehicle.plate);
   const [branch, setBranch] = useState(vehicle.branch);
   const [age, setAge] = useState(vehicle.age);
@@ -38,110 +43,81 @@ export const EditCarModal: React.FC<EditCarModalProps> = ({
   const [recommendation, setRecommendation] = useState(vehicle.recommendation);
   const [notes, setNotes] = useState(vehicle.notes || '');
 
-  // Monthly values
-  const [m6Dist, setM6Dist] = useState(vehicle.m6.dist);
-  const [m6Fuel, setM6Fuel] = useState(vehicle.m6.fuel);
-  const [m6Cost, setM6Cost] = useState(vehicle.m6.cost);
-  const [m6Jobs, setM6Jobs] = useState(vehicle.m6.jobs);
-
-  const [m7Dist, setM7Dist] = useState(vehicle.m7.dist);
-  const [m7Fuel, setM7Fuel] = useState(vehicle.m7.fuel);
-  const [m7Cost, setM7Cost] = useState(vehicle.m7.cost);
-  const [m7Jobs, setM7Jobs] = useState(vehicle.m7.jobs);
-
-  const [m8Dist, setM8Dist] = useState(vehicle.m8.dist);
-  const [m8Fuel, setM8Fuel] = useState(vehicle.m8.fuel);
-  const [m8Cost, setM8Cost] = useState(vehicle.m8.cost);
-  const [m8Jobs, setM8Jobs] = useState(vehicle.m8.jobs);
-
-  const [m9Dist, setM9Dist] = useState(vehicle.m9?.dist || 0);
-  const [m9Fuel, setM9Fuel] = useState(vehicle.m9?.fuel || 0);
-  const [m9Cost, setM9Cost] = useState(vehicle.m9?.cost || 0);
-  const [m9Jobs, setM9Jobs] = useState(vehicle.m9?.jobs || 0);
-
-  const [m10Dist, setM10Dist] = useState(vehicle.m10?.dist || 0);
-  const [m10Fuel, setM10Fuel] = useState(vehicle.m10?.fuel || 0);
-  const [m10Cost, setM10Cost] = useState(vehicle.m10?.cost || 0);
-  const [m10Jobs, setM10Jobs] = useState(vehicle.m10?.jobs || 0);
-
-  const [m11Dist, setM11Dist] = useState(vehicle.m11?.dist || 0);
-  const [m11Fuel, setM11Fuel] = useState(vehicle.m11?.fuel || 0);
-  const [m11Cost, setM11Cost] = useState(vehicle.m11?.cost || 0);
-  const [m11Jobs, setM11Jobs] = useState(vehicle.m11?.jobs || 0);
+  // Unified state for all 19 months (มิ.ย. 69 - ธ.ค. 70)
+  const [monthDataMap, setMonthDataMap] = useState<Record<MonthKey, Omit<MonthlyOperationalData, 'drivers'>>>(() => {
+    const initial = {} as Record<MonthKey, Omit<MonthlyOperationalData, 'drivers'>>;
+    ALL_MONTH_KEYS.forEach((mKey) => {
+      const m = getVehicleMonthData(vehicle, mKey);
+      initial[mKey] = {
+        dist: m.dist || 0,
+        fuel: m.fuel || 0,
+        cost: m.cost || 0,
+        jobs: m.jobs || 0
+      };
+    });
+    return initial;
+  });
 
   // Driver arrays per month (up to 3 drivers per vehicle per month)
-  const getInitDrivers = (d?: string[]) => [d?.[0] || '', d?.[1] || '', d?.[2] || ''];
-  const [m6Drivers, setM6Drivers] = useState<string[]>(() => getInitDrivers(vehicle.m6?.drivers));
-  const [m7Drivers, setM7Drivers] = useState<string[]>(() => getInitDrivers(vehicle.m7?.drivers));
-  const [m8Drivers, setM8Drivers] = useState<string[]>(() => getInitDrivers(vehicle.m8?.drivers));
-  const [m9Drivers, setM9Drivers] = useState<string[]>(() => getInitDrivers(vehicle.m9?.drivers));
-  const [m10Drivers, setM10Drivers] = useState<string[]>(() => getInitDrivers(vehicle.m10?.drivers));
-  const [m11Drivers, setM11Drivers] = useState<string[]>(() => getInitDrivers(vehicle.m11?.drivers));
+  const [driversMap, setDriversMap] = useState<Record<MonthKey, string[]>>(() => {
+    const initial = {} as Record<MonthKey, string[]>;
+    ALL_MONTH_KEYS.forEach((mKey) => {
+      const m = getVehicleMonthData(vehicle, mKey);
+      initial[mKey] = getInitDrivers(m.drivers);
+    });
+    return initial;
+  });
+
+  const [selectedYear, setSelectedYear] = useState<2569 | 2570>(2569);
+  const [activeMonth, setActiveMonth] = useState<MonthKey>('m8');
 
   const [editReason, setEditReason] = useState('บันทึกข้อมูลย้อนหลัง / ปรับปรุงข้อมูลจริง');
   const [saving, setSaving] = useState(false);
 
   const cleanDrivers = (arr: string[]) => arr.map((s) => s.trim()).filter(Boolean);
 
-  const renderDriverInputs = (
-    drivers: string[],
-    setDrivers: React.Dispatch<React.SetStateAction<string[]>>,
-    monthLabel: string
-  ) => (
-    <div className="mt-2.5 pt-2 border-t border-slate-200 dark:border-slate-700/60">
-      <div className="flex items-center justify-between mb-1.5">
-        <span className="text-[11px] font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
-          <Users className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
-          <span>คนขับประจำเดือน {monthLabel} (สูงสุด 3 คน):</span>
-        </span>
-        <span className="text-[10px] text-slate-400">สลับคนได้ตลอดเวลา</span>
-      </div>
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-        <div>
-          <label className="text-[10px] text-slate-500 font-semibold block mb-0.5">1. คนขับหลัก</label>
-          <input
-            type="text"
-            value={drivers[0] || ''}
-            placeholder="เช่น นายสมชาย"
-            onChange={(e) => {
-              const next = [...drivers];
-              next[0] = e.target.value;
-              setDrivers(next);
-            }}
-            className="w-full text-xs p-1.5 rounded border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-800 dark:text-white"
-          />
-        </div>
-        <div>
-          <label className="text-[10px] text-slate-500 font-semibold block mb-0.5">2. คนขับเสริม 1</label>
-          <input
-            type="text"
-            value={drivers[1] || ''}
-            placeholder="เช่น นายสมศักดิ์"
-            onChange={(e) => {
-              const next = [...drivers];
-              next[1] = e.target.value;
-              setDrivers(next);
-            }}
-            className="w-full text-xs p-1.5 rounded border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-800 dark:text-white"
-          />
-        </div>
-        <div>
-          <label className="text-[10px] text-slate-500 font-semibold block mb-0.5">3. คนขับเสริม 2</label>
-          <input
-            type="text"
-            value={drivers[2] || ''}
-            placeholder="เช่น นายวิชัย"
-            onChange={(e) => {
-              const next = [...drivers];
-              next[2] = e.target.value;
-              setDrivers(next);
-            }}
-            className="w-full text-xs p-1.5 rounded border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-800 dark:text-white"
-          />
-        </div>
-      </div>
-    </div>
-  );
+  const handleFieldChange = (
+    mKey: MonthKey,
+    field: 'dist' | 'fuel' | 'cost' | 'jobs',
+    value: number
+  ) => {
+    setMonthDataMap((prev) => ({
+      ...prev,
+      [mKey]: {
+        ...prev[mKey],
+        [field]: Number.isFinite(value) ? value : 0
+      }
+    }));
+  };
+
+  const handleDriverChange = (mKey: MonthKey, slotIdx: number, value: string) => {
+    setDriversMap((prev) => {
+      const next = [...prev[mKey]];
+      next[slotIdx] = value;
+      return {
+        ...prev,
+        [mKey]: next
+      };
+    });
+  };
+
+  const handleCopyDriversFromPrev = (targetMonth: MonthKey) => {
+    const idx = ALL_MONTH_KEYS.indexOf(targetMonth);
+    if (idx <= 0) return;
+    const prevMonth = ALL_MONTH_KEYS[idx - 1];
+    setDriversMap((prev) => ({
+      ...prev,
+      [targetMonth]: [...prev[prevMonth]]
+    }));
+  };
+
+  const handleYearSwitch = (year: 2569 | 2570) => {
+    setSelectedYear(year);
+    const list = year === 2569 ? MONTHS_2569 : MONTHS_2570;
+    if (!list.includes(activeMonth as never)) {
+      setActiveMonth(list[0]);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -157,50 +133,19 @@ export const EditCarModal: React.FC<EditCarModalProps> = ({
         estimatedPrice: Number(estimatedPrice),
         limit: Number(limit),
         recommendation,
-        notes,
-        m6: {
-          dist: Number(m6Dist),
-          fuel: Number(m6Fuel),
-          cost: Number(m6Cost),
-          jobs: Number(m6Jobs),
-          drivers: cleanDrivers(m6Drivers)
-        },
-        m7: {
-          dist: Number(m7Dist),
-          fuel: Number(m7Fuel),
-          cost: Number(m7Cost),
-          jobs: Number(m7Jobs),
-          drivers: cleanDrivers(m7Drivers)
-        },
-        m8: {
-          dist: Number(m8Dist),
-          fuel: Number(m8Fuel),
-          cost: Number(m8Cost),
-          jobs: Number(m8Jobs),
-          drivers: cleanDrivers(m8Drivers)
-        },
-        m9: {
-          dist: Number(m9Dist) || 0,
-          fuel: Number(m9Fuel) || 0,
-          cost: Number(m9Cost) || 0,
-          jobs: Number(m9Jobs) || 0,
-          drivers: cleanDrivers(m9Drivers)
-        },
-        m10: {
-          dist: Number(m10Dist) || 0,
-          fuel: Number(m10Fuel) || 0,
-          cost: Number(m10Cost) || 0,
-          jobs: Number(m10Jobs) || 0,
-          drivers: cleanDrivers(m10Drivers)
-        },
-        m11: {
-          dist: Number(m11Dist) || 0,
-          fuel: Number(m11Fuel) || 0,
-          cost: Number(m11Cost) || 0,
-          jobs: Number(m11Jobs) || 0,
-          drivers: cleanDrivers(m11Drivers)
-        }
+        notes
       };
+
+      ALL_MONTH_KEYS.forEach((mKey) => {
+        const d = monthDataMap[mKey];
+        (updated as Record<string, unknown>)[mKey] = {
+          dist: Number(d.dist) || 0,
+          fuel: Number(d.fuel) || 0,
+          cost: Number(d.cost) || 0,
+          jobs: Number(d.jobs) || 0,
+          drivers: cleanDrivers(driversMap[mKey] || [])
+        };
+      });
 
       await onSave(vehicle.id, updated, editReason);
       onClose();
@@ -210,6 +155,40 @@ export const EditCarModal: React.FC<EditCarModalProps> = ({
       setSaving(false);
     }
   };
+
+  const yearMonths: MonthKey[] = selectedYear === 2569 ? MONTHS_2569 : MONTHS_2570;
+  const activeCfg = MONTH_CONFIG[activeMonth];
+  const activeData = monthDataMap[activeMonth];
+  const activeDrivers = driversMap[activeMonth] || ['', '', ''];
+  const activeMonthIndex = ALL_MONTH_KEYS.indexOf(activeMonth);
+
+  // Live calculation across all 19 months AND selected year
+  const grandStats = ALL_MONTH_KEYS.reduce(
+    (acc, mKey) => {
+      const m = monthDataMap[mKey];
+      acc.dist += Number(m.dist) || 0;
+      acc.fuel += Number(m.fuel) || 0;
+      acc.cost += Number(m.cost) || 0;
+      acc.jobs += Number(m.jobs) || 0;
+      return acc;
+    },
+    { dist: 0, fuel: 0, cost: 0, jobs: 0 }
+  );
+
+  const yearStats = yearMonths.reduce(
+    (acc, mKey) => {
+      const m = monthDataMap[mKey];
+      acc.dist += Number(m.dist) || 0;
+      acc.fuel += Number(m.fuel) || 0;
+      acc.cost += Number(m.cost) || 0;
+      acc.jobs += Number(m.jobs) || 0;
+      return acc;
+    },
+    { dist: 0, fuel: 0, cost: 0, jobs: 0 }
+  );
+
+  const liveEff = grandStats.fuel > 0 ? grandStats.dist / grandStats.fuel : 0;
+  const liveCjob = grandStats.jobs > 0 ? grandStats.cost / grandStats.jobs : 0;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4">
@@ -232,11 +211,12 @@ export const EditCarModal: React.FC<EditCarModalProps> = ({
                 แก้ไขข้อมูลรถ: ทะเบียน {vehicle.plate}
               </h3>
               <p className="text-xs text-slate-500 dark:text-slate-400">
-                การแก้ไขจะอัปเดตแบบเรียลไทม์ไปยังทุกอุปกรณ์และซิงค์คลาวด์อัตโนมัติ
+                รองรับข้อมูล 19 เดือน (ปี 2569 มิ.ย.-ธ.ค. และ ปี 2570 ม.ค.-ธ.ค.) ซิงค์คลาวด์อัตโนมัติ
               </p>
             </div>
           </div>
           <button
+            type="button"
             onClick={onClose}
             aria-label="Close modal"
             className="w-8 h-8 flex items-center justify-center rounded-full bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300 hover:bg-red-100 hover:text-red-600 transition-colors"
@@ -362,390 +342,247 @@ export const EditCarModal: React.FC<EditCarModalProps> = ({
             </div>
           </div>
 
-          {/* Monthly Operational Data (M6, M7, M8) */}
+          {/* Monthly Operational Data (2569 & 2570 Tabbed Editor) */}
           <div className="space-y-3">
-            <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider">
-              ข้อมูลการปฏิบัติงานรายเดือน (มิ.ย. - ส.ค. 69)
-            </h4>
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <h4 className="text-xs font-bold text-slate-500 dark:text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
+                <Calendar className="w-3.5 h-3.5 text-blue-600" />
+                <span>ข้อมูลการปฏิบัติงานรายเดือน (เลือกปีและเดือนที่ต้องการบันทึก)</span>
+              </h4>
 
-            {/* M6 */}
-            <div className="p-3 bg-slate-50 dark:bg-slate-800/60 rounded-xl border border-slate-200 dark:border-slate-700">
-              <span className="text-xs font-bold text-blue-700 dark:text-blue-400 block mb-2">
-                เดือน 6 (มิ.ย. 69)
-              </span>
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                <div>
-                  <label className="text-[11px] text-slate-500">ระยะทาง (กม.)</label>
-                  <input
-                    type="number"
-                    step="any"
-                    value={m6Dist}
-                    onChange={(e) => setM6Dist(Number(e.target.value))}
-                    className="w-full text-xs p-1.5 rounded border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800"
-                  />
-                </div>
-                <div>
-                  <label className="text-[11px] text-slate-500">น้ำมัน (ลิตร)</label>
-                  <input
-                    type="number"
-                    step="any"
-                    value={m6Fuel}
-                    onChange={(e) => setM6Fuel(Number(e.target.value))}
-                    className="w-full text-xs p-1.5 rounded border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800"
-                  />
-                </div>
-                <div>
-                  <label className="text-[11px] text-slate-500">ค่าน้ำมัน (บาท)</label>
-                  <input
-                    type="number"
-                    step="any"
-                    value={m6Cost}
-                    onChange={(e) => setM6Cost(Number(e.target.value))}
-                    className="w-full text-xs p-1.5 rounded border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800"
-                  />
-                </div>
-                <div>
-                  <label className="text-[11px] text-slate-500">จำนวนงาน (Jobs)</label>
-                  <input
-                    type="number"
-                    value={m6Jobs}
-                    onChange={(e) => setM6Jobs(Number(e.target.value))}
-                    className="w-full text-xs p-1.5 rounded border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 font-bold text-blue-600"
-                  />
-                </div>
+              {/* Year Tabs */}
+              <div className="inline-flex bg-slate-100 dark:bg-slate-800 p-0.5 rounded-lg border border-slate-200 dark:border-slate-700">
+                <button
+                  type="button"
+                  onClick={() => handleYearSwitch(2569)}
+                  className={`px-3 py-1 rounded-md text-xs font-bold transition-all ${
+                    selectedYear === 2569
+                      ? 'bg-blue-600 text-white shadow-xs'
+                      : 'text-slate-600 dark:text-slate-300 hover:bg-slate-200/60 dark:hover:bg-slate-700'
+                  }`}
+                >
+                  ปี 2569 (มิ.ย.-ธ.ค.)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleYearSwitch(2570)}
+                  className={`px-3 py-1 rounded-md text-xs font-bold transition-all ${
+                    selectedYear === 2570
+                      ? 'bg-indigo-600 text-white shadow-xs'
+                      : 'text-slate-600 dark:text-slate-300 hover:bg-slate-200/60 dark:hover:bg-slate-700'
+                  }`}
+                >
+                  ปี 2570 (ม.ค.-ธ.ค.)
+                </button>
               </div>
-              {renderDriverInputs(m6Drivers, setM6Drivers, 'มิ.ย.')}
             </div>
 
-            {/* M7 */}
-            <div className="p-3 bg-slate-50 dark:bg-slate-800/60 rounded-xl border border-slate-200 dark:border-slate-700">
-              <span className="text-xs font-bold text-cyan-700 dark:text-cyan-400 block mb-2">
-                เดือน 7 (ก.ค. 69)
-              </span>
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                <div>
-                  <label className="text-[11px] text-slate-500">ระยะทาง (กม.)</label>
-                  <input
-                    type="number"
-                    step="any"
-                    value={m7Dist}
-                    onChange={(e) => setM7Dist(Number(e.target.value))}
-                    className="w-full text-xs p-1.5 rounded border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800"
-                  />
-                </div>
-                <div>
-                  <label className="text-[11px] text-slate-500">น้ำมัน (ลิตร)</label>
-                  <input
-                    type="number"
-                    step="any"
-                    value={m7Fuel}
-                    onChange={(e) => setM7Fuel(Number(e.target.value))}
-                    className="w-full text-xs p-1.5 rounded border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800"
-                  />
-                </div>
-                <div>
-                  <label className="text-[11px] text-slate-500">ค่าน้ำมัน (บาท)</label>
-                  <input
-                    type="number"
-                    step="any"
-                    value={m7Cost}
-                    onChange={(e) => setM7Cost(Number(e.target.value))}
-                    className="w-full text-xs p-1.5 rounded border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800"
-                  />
-                </div>
-                <div>
-                  <label className="text-[11px] text-slate-500">จำนวนงาน (Jobs)</label>
-                  <input
-                    type="number"
-                    value={m7Jobs}
-                    onChange={(e) => setM7Jobs(Number(e.target.value))}
-                    className="w-full text-xs p-1.5 rounded border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 font-bold text-blue-600"
-                  />
-                </div>
-              </div>
-              {renderDriverInputs(m7Drivers, setM7Drivers, 'ก.ค.')}
+            {/* Month Selector Grid within Selected Year */}
+            <div className={`grid gap-1.5 ${selectedYear === 2569 ? 'grid-cols-4 sm:grid-cols-7' : 'grid-cols-4 sm:grid-cols-6'}`}>
+              {yearMonths.map((mKey) => {
+                const cfg = MONTH_CONFIG[mKey];
+                const d = monthDataMap[mKey];
+                const drvCount = (driversMap[mKey] || []).filter((s) => s.trim()).length;
+                const hasData = d.dist > 0 || d.fuel > 0 || d.cost > 0 || d.jobs > 0;
+                const isSelected = activeMonth === mKey;
+
+                return (
+                  <button
+                    key={mKey}
+                    type="button"
+                    onClick={() => setActiveMonth(mKey)}
+                    className={`p-2 rounded-xl border text-center transition-all flex flex-col items-center gap-0.5 ${
+                      isSelected
+                        ? 'bg-slate-900 dark:bg-blue-600 text-white border-slate-900 dark:border-blue-500 shadow-sm ring-2 ring-blue-500/20'
+                        : hasData
+                        ? 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 border-slate-300 dark:border-slate-600 hover:border-blue-400'
+                        : 'bg-slate-50 dark:bg-slate-800/40 text-slate-400 dark:text-slate-400 border-dashed border-slate-300 dark:border-slate-700 hover:border-slate-400'
+                    }`}
+                  >
+                    <div className="flex items-center gap-1">
+                      <span
+                        className="w-2 h-2 rounded-full shrink-0"
+                        style={{ backgroundColor: isSelected ? '#ffffff' : cfg.color }}
+                      />
+                      <span className="text-xs font-bold">{cfg.shortYearLabel}</span>
+                    </div>
+                    <span
+                      className={`text-[9px] font-medium ${
+                        isSelected
+                          ? 'text-blue-200'
+                          : hasData
+                          ? 'text-emerald-600 dark:text-emerald-400'
+                          : 'text-slate-400'
+                      }`}
+                    >
+                      {hasData ? `${d.cost.toLocaleString()}บ.` : drvCount > 0 ? `คนขับ ${drvCount}` : 'ว่าง'}
+                    </span>
+                  </button>
+                );
+              })}
             </div>
 
-            {/* M8 */}
-            <div className="p-3 bg-slate-50 dark:bg-slate-800/60 rounded-xl border border-slate-200 dark:border-slate-700">
-              <span className="text-xs font-bold text-orange-700 dark:text-orange-400 block mb-2">
-                เดือน 8 (ส.ค. 69) - อัปเดตงานย้อนหลัง
-              </span>
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                <div>
-                  <label className="text-[11px] text-slate-500">ระยะทาง (กม.)</label>
-                  <input
-                    type="number"
-                    step="any"
-                    value={m8Dist}
-                    onChange={(e) => setM8Dist(Number(e.target.value))}
-                    className="w-full text-xs p-1.5 rounded border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800"
+            {/* Active Month Editor Card */}
+            <div className="p-4 bg-slate-50 dark:bg-slate-800/70 rounded-xl border-2 border-slate-200 dark:border-slate-700 space-y-3">
+              <div className="flex flex-wrap items-center justify-between gap-2 pb-2 border-b border-slate-200 dark:border-slate-700">
+                <div className="flex items-center gap-2">
+                  <span
+                    className="w-3 h-3 rounded-full shrink-0"
+                    style={{ backgroundColor: activeCfg.color }}
                   />
+                  <span className="text-sm font-bold text-slate-800 dark:text-white">
+                    {activeCfg.label} — {activeCfg.thaiName}
+                  </span>
                 </div>
+                <span className="text-[11px] font-semibold px-2 py-0.5 rounded bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300">
+                  {activeData.dist > 0 || activeData.cost > 0 || activeData.jobs > 0
+                    ? 'มีข้อมูลแล้ว (แก้ไขได้ทันที)'
+                    : 'เดือนว่าง (พร้อมกรอกข้อมูล)'}
+                </span>
+              </div>
+
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                 <div>
-                  <label className="text-[11px] text-slate-500">น้ำมัน (ลิตร)</label>
-                  <input
-                    type="number"
-                    step="any"
-                    value={m8Fuel}
-                    onChange={(e) => setM8Fuel(Number(e.target.value))}
-                    className="w-full text-xs p-1.5 rounded border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800"
-                  />
-                </div>
-                <div>
-                  <label className="text-[11px] text-slate-500">ค่าน้ำมัน (บาท)</label>
-                  <input
-                    type="number"
-                    step="any"
-                    value={m8Cost}
-                    onChange={(e) => setM8Cost(Number(e.target.value))}
-                    className="w-full text-xs p-1.5 rounded border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800"
-                  />
-                </div>
-                <div>
-                  <label className="text-[11px] text-slate-500 font-bold text-orange-600 dark:text-orange-400">
-                    จำนวนงาน (Jobs) *
+                  <label className="text-[11px] font-semibold text-slate-600 dark:text-slate-300 block mb-1">
+                    ระยะทาง (กม.)
                   </label>
                   <input
                     type="number"
-                    value={m8Jobs}
-                    onChange={(e) => setM8Jobs(Number(e.target.value))}
-                    placeholder="เช่น 45"
-                    className="w-full text-xs p-1.5 rounded border-2 border-orange-400 dark:border-orange-500 bg-white dark:bg-slate-800 font-bold text-orange-600"
+                    step="any"
+                    value={activeData.dist || ''}
+                    placeholder="0"
+                    onChange={(e) => handleFieldChange(activeMonth, 'dist', Number(e.target.value))}
+                    className="w-full text-xs p-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-800 dark:text-white"
                   />
                 </div>
-              </div>
-              {renderDriverInputs(m8Drivers, setM8Drivers, 'ส.ค.')}
-            </div>
-
-            {/* M9 (New Month 9) */}
-            <div className="p-3 bg-emerald-50/60 dark:bg-emerald-950/20 rounded-xl border-2 border-emerald-300 dark:border-emerald-800">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-xs font-bold text-emerald-800 dark:text-emerald-300 flex items-center gap-1.5">
-                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                  เดือน 9 (ก.ย. 69) - บันทึกข้อมูลใหม่
-                </span>
-                <span className="text-[10px] bg-emerald-200 dark:bg-emerald-900/60 text-emerald-800 dark:text-emerald-200 px-2 py-0.5 rounded font-semibold">
-                  กรอกข้อมูลเดือน 9
-                </span>
-              </div>
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                 <div>
-                  <label className="text-[11px] text-slate-500">ระยะทาง (กม.)</label>
+                  <label className="text-[11px] font-semibold text-slate-600 dark:text-slate-300 block mb-1">
+                    น้ำมัน (ลิตร)
+                  </label>
                   <input
                     type="number"
                     step="any"
-                    value={m9Dist || ''}
+                    value={activeData.fuel || ''}
                     placeholder="0"
-                    onChange={(e) => setM9Dist(Number(e.target.value))}
-                    className="w-full text-xs p-1.5 rounded border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800"
+                    onChange={(e) => handleFieldChange(activeMonth, 'fuel', Number(e.target.value))}
+                    className="w-full text-xs p-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-800 dark:text-white"
                   />
                 </div>
                 <div>
-                  <label className="text-[11px] text-slate-500">น้ำมัน (ลิตร)</label>
+                  <label className="text-[11px] font-semibold text-red-600 dark:text-red-400 block mb-1">
+                    ค่าน้ำมัน (บาท)
+                  </label>
                   <input
                     type="number"
                     step="any"
-                    value={m9Fuel || ''}
+                    value={activeData.cost || ''}
                     placeholder="0"
-                    onChange={(e) => setM9Fuel(Number(e.target.value))}
-                    className="w-full text-xs p-1.5 rounded border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800"
+                    onChange={(e) => handleFieldChange(activeMonth, 'cost', Number(e.target.value))}
+                    className="w-full text-xs p-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 font-semibold text-red-600 dark:text-red-400"
                   />
                 </div>
                 <div>
-                  <label className="text-[11px] text-slate-500">ค่าน้ำมัน (บาท)</label>
-                  <input
-                    type="number"
-                    step="any"
-                    value={m9Cost || ''}
-                    placeholder="0"
-                    onChange={(e) => setM9Cost(Number(e.target.value))}
-                    className="w-full text-xs p-1.5 rounded border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 font-semibold text-emerald-700 dark:text-emerald-300"
-                  />
-                </div>
-                <div>
-                  <label className="text-[11px] text-slate-500 font-bold text-emerald-700 dark:text-emerald-300">
+                  <label className="text-[11px] font-bold text-blue-600 dark:text-blue-400 block mb-1">
                     จำนวนงาน (Jobs)
                   </label>
                   <input
                     type="number"
-                    value={m9Jobs || ''}
+                    value={activeData.jobs || ''}
                     placeholder="0"
-                    onChange={(e) => setM9Jobs(Number(e.target.value))}
-                    className="w-full text-xs p-1.5 rounded border-2 border-emerald-400 dark:border-emerald-500 bg-white dark:bg-slate-800 font-bold text-emerald-700"
+                    onChange={(e) => handleFieldChange(activeMonth, 'jobs', Number(e.target.value))}
+                    className="w-full text-xs p-2 rounded-lg border-2 border-blue-400 dark:border-blue-500 bg-white dark:bg-slate-900 font-bold text-blue-600 dark:text-blue-400"
                   />
                 </div>
               </div>
-              {renderDriverInputs(m9Drivers, setM9Drivers, 'ก.ย.')}
-            </div>
 
-            {/* M10 (New Month 10 - ต.ค. 69) */}
-            <div className="p-3 bg-purple-50/60 dark:bg-purple-950/20 rounded-xl border-2 border-purple-300 dark:border-purple-800">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-xs font-bold text-purple-800 dark:text-purple-300 flex items-center gap-1.5">
-                  <span className="w-2 h-2 rounded-full bg-purple-500 animate-pulse" />
-                  เดือน 10 (ต.ค. 69) - บันทึกข้อมูลใหม่
-                </span>
-                <span className="text-[10px] bg-purple-200 dark:bg-purple-900/60 text-purple-800 dark:text-purple-200 px-2 py-0.5 rounded font-semibold">
-                  กรอกข้อมูลเดือน 10
-                </span>
-              </div>
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                <div>
-                  <label className="text-[11px] text-slate-500">ระยะทาง (กม.)</label>
-                  <input
-                    type="number"
-                    step="any"
-                    value={m10Dist || ''}
-                    placeholder="0"
-                    onChange={(e) => setM10Dist(Number(e.target.value))}
-                    className="w-full text-xs p-1.5 rounded border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800"
-                  />
+              {/* Drivers for Active Month */}
+              <div className="pt-2 border-t border-slate-200 dark:border-slate-700/60">
+                <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
+                  <span className="text-[11px] font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+                    <Users className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+                    <span>คนขับประจำเดือน {activeCfg.shortYearLabel} (สูงสุด 3 คน):</span>
+                  </span>
+                  {activeMonthIndex > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => handleCopyDriversFromPrev(activeMonth)}
+                      className="text-[11px] px-2 py-0.5 rounded bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 text-slate-600 dark:text-slate-200 hover:text-blue-600 flex items-center gap-1 font-medium"
+                    >
+                      <Copy className="w-3 h-3 text-blue-500" />
+                      <span>คัดลอกคนขับจาก {MONTH_CONFIG[ALL_MONTH_KEYS[activeMonthIndex - 1]].shortYearLabel}</span>
+                    </button>
+                  )}
                 </div>
-                <div>
-                  <label className="text-[11px] text-slate-500">น้ำมัน (ลิตร)</label>
-                  <input
-                    type="number"
-                    step="any"
-                    value={m10Fuel || ''}
-                    placeholder="0"
-                    onChange={(e) => setM10Fuel(Number(e.target.value))}
-                    className="w-full text-xs p-1.5 rounded border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800"
-                  />
-                </div>
-                <div>
-                  <label className="text-[11px] text-slate-500">ค่าน้ำมัน (บาท)</label>
-                  <input
-                    type="number"
-                    step="any"
-                    value={m10Cost || ''}
-                    placeholder="0"
-                    onChange={(e) => setM10Cost(Number(e.target.value))}
-                    className="w-full text-xs p-1.5 rounded border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 font-semibold text-purple-700 dark:text-purple-300"
-                  />
-                </div>
-                <div>
-                  <label className="text-[11px] text-slate-500 font-bold text-purple-700 dark:text-purple-300">
-                    จำนวนงาน (Jobs)
-                  </label>
-                  <input
-                    type="number"
-                    value={m10Jobs || ''}
-                    placeholder="0"
-                    onChange={(e) => setM10Jobs(Number(e.target.value))}
-                    className="w-full text-xs p-1.5 rounded border-2 border-purple-400 dark:border-purple-500 bg-white dark:bg-slate-800 font-bold text-purple-700"
-                  />
-                </div>
-              </div>
-              {renderDriverInputs(m10Drivers, setM10Drivers, 'ต.ค.')}
-            </div>
 
-            {/* M11 (New Month 11 - พ.ย. 69) */}
-            <div className="p-3 bg-pink-50/60 dark:bg-pink-950/20 rounded-xl border-2 border-pink-300 dark:border-pink-800">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-xs font-bold text-pink-800 dark:text-pink-300 flex items-center gap-1.5">
-                  <span className="w-2 h-2 rounded-full bg-pink-500 animate-pulse" />
-                  เดือน 11 (พ.ย. 69) - บันทึกข้อมูลใหม่
-                </span>
-                <span className="text-[10px] bg-pink-200 dark:bg-pink-900/60 text-pink-800 dark:text-pink-200 px-2 py-0.5 rounded font-semibold">
-                  กรอกข้อมูลเดือน 11
-                </span>
-              </div>
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                <div>
-                  <label className="text-[11px] text-slate-500">ระยะทาง (กม.)</label>
-                  <input
-                    type="number"
-                    step="any"
-                    value={m11Dist || ''}
-                    placeholder="0"
-                    onChange={(e) => setM11Dist(Number(e.target.value))}
-                    className="w-full text-xs p-1.5 rounded border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800"
-                  />
-                </div>
-                <div>
-                  <label className="text-[11px] text-slate-500">น้ำมัน (ลิตร)</label>
-                  <input
-                    type="number"
-                    step="any"
-                    value={m11Fuel || ''}
-                    placeholder="0"
-                    onChange={(e) => setM11Fuel(Number(e.target.value))}
-                    className="w-full text-xs p-1.5 rounded border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800"
-                  />
-                </div>
-                <div>
-                  <label className="text-[11px] text-slate-500">ค่าน้ำมัน (บาท)</label>
-                  <input
-                    type="number"
-                    step="any"
-                    value={m11Cost || ''}
-                    placeholder="0"
-                    onChange={(e) => setM11Cost(Number(e.target.value))}
-                    className="w-full text-xs p-1.5 rounded border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 font-semibold text-pink-700 dark:text-pink-300"
-                  />
-                </div>
-                <div>
-                  <label className="text-[11px] text-slate-500 font-bold text-pink-700 dark:text-pink-300">
-                    จำนวนงาน (Jobs)
-                  </label>
-                  <input
-                    type="number"
-                    value={m11Jobs || ''}
-                    placeholder="0"
-                    onChange={(e) => setM11Jobs(Number(e.target.value))}
-                    className="w-full text-xs p-1.5 rounded border-2 border-pink-400 dark:border-pink-500 bg-white dark:bg-slate-800 font-bold text-pink-700"
-                  />
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                  {[0, 1, 2].map((slotIdx) => (
+                    <div key={slotIdx}>
+                      <label className="text-[10px] text-slate-500 font-semibold block mb-0.5">
+                        {slotIdx === 0 ? '1. คนขับหลัก' : ` ${slotIdx + 1}. คนขับเสริม ${slotIdx}`}
+                      </label>
+                      <input
+                        type="text"
+                        value={activeDrivers[slotIdx] || ''}
+                        placeholder={
+                          slotIdx === 0
+                            ? 'เช่น นายสมชาย'
+                            : slotIdx === 1
+                            ? 'เช่น นายสมศักดิ์'
+                            : 'เช่น นายวิชัย'
+                        }
+                        onChange={(e) => handleDriverChange(activeMonth, slotIdx, e.target.value)}
+                        className="w-full text-xs p-1.5 rounded border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-800 dark:text-white"
+                      />
+                    </div>
+                  ))}
                 </div>
               </div>
-              {renderDriverInputs(m11Drivers, setM11Drivers, 'พ.ย.')}
             </div>
 
             {/* Live Calculation Preview */}
-            {(() => {
-              const liveDist = (Number(m6Dist) || 0) + (Number(m7Dist) || 0) + (Number(m8Dist) || 0) + (Number(m9Dist) || 0) + (Number(m10Dist) || 0) + (Number(m11Dist) || 0);
-              const liveFuel = (Number(m6Fuel) || 0) + (Number(m7Fuel) || 0) + (Number(m8Fuel) || 0) + (Number(m9Fuel) || 0) + (Number(m10Fuel) || 0) + (Number(m11Fuel) || 0);
-              const liveCost = (Number(m6Cost) || 0) + (Number(m7Cost) || 0) + (Number(m8Cost) || 0) + (Number(m9Cost) || 0) + (Number(m10Cost) || 0) + (Number(m11Cost) || 0);
-              const liveJobs = (Number(m6Jobs) || 0) + (Number(m7Jobs) || 0) + (Number(m8Jobs) || 0) + (Number(m9Jobs) || 0) + (Number(m10Jobs) || 0) + (Number(m11Jobs) || 0);
-              const liveEff = liveFuel > 0 ? liveDist / liveFuel : 0;
-              const liveCkm = liveDist > 0 ? liveCost / liveDist : 0;
-              const liveCjob = liveJobs > 0 ? liveCost / liveJobs : 0;
-
-              return (
-                <div className="p-3.5 bg-blue-50/70 dark:bg-blue-950/30 rounded-xl border border-blue-200 dark:border-blue-800 text-xs">
-                  <div className="font-bold text-blue-800 dark:text-blue-300 mb-2 flex items-center justify-between">
-                    <span>⚡ สรุปผลคำนวณสด (Live Calculated Preview):</span>
-                    {liveEff >= 13 ? (
-                      <span className="text-emerald-600 font-bold">เกณฑ์ดีมาก</span>
-                    ) : liveEff >= 11 ? (
-                      <span className="text-amber-600 font-bold">เกณฑ์ดี</span>
-                    ) : liveEff >= 9 ? (
-                      <span className="text-orange-500 font-bold">เกณฑ์พอใช้</span>
-                    ) : (
-                      <span className="text-red-600 font-bold">เกณฑ์วิกฤต (ปรับปรุง)</span>
-                    )}
-                  </div>
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-slate-700 dark:text-slate-300">
-                    <div>
-                      <span className="text-[11px] text-slate-500">รวมระยะทาง:</span>
-                      <p className="font-bold">{liveDist.toLocaleString()} กม.</p>
-                    </div>
-                    <div>
-                      <span className="text-[11px] text-slate-500">รวมค่าน้ำมัน:</span>
-                      <p className="font-bold text-red-600 dark:text-red-400">{liveCost.toLocaleString()} บ.</p>
-                    </div>
-                    <div>
-                      <span className="text-[11px] text-slate-500">เฉลี่ย กม./ลิตร:</span>
-                      <p className="font-bold text-blue-600 dark:text-blue-400">{liveEff > 0 ? liveEff.toFixed(2) : '-'} กม./ลิตร</p>
-                    </div>
-                    <div>
-                      <span className="text-[11px] text-slate-500">เฉลี่ย บ./งาน:</span>
-                      <p className="font-bold text-orange-600 dark:text-orange-400">{liveCjob > 0 ? liveCjob.toFixed(2) : '-'} บ./งาน</p>
-                    </div>
-                  </div>
+            <div className="p-3.5 bg-blue-50/70 dark:bg-blue-950/30 rounded-xl border border-blue-200 dark:border-blue-800 text-xs space-y-2.5">
+              <div className="font-bold text-blue-800 dark:text-blue-300 flex flex-wrap items-center justify-between gap-2">
+                <span>⚡ สรุปผลคำนวณสดสะสมทั้ง 19 เดือน (Live Calculated Preview):</span>
+                {liveEff >= 13 ? (
+                  <span className="text-emerald-600 font-bold">เกณฑ์ดีมาก</span>
+                ) : liveEff >= 11 ? (
+                  <span className="text-amber-600 font-bold">เกณฑ์ดี</span>
+                ) : liveEff >= 9 ? (
+                  <span className="text-orange-500 font-bold">เกณฑ์พอใช้</span>
+                ) : (
+                  <span className="text-red-600 font-bold">เกณฑ์วิกฤต (ปรับปรุง)</span>
+                )}
+              </div>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-slate-700 dark:text-slate-300">
+                <div>
+                  <span className="text-[11px] text-slate-500">รวมระยะทาง (ทั้งหมด):</span>
+                  <p className="font-bold">{grandStats.dist.toLocaleString()} กม.</p>
                 </div>
-              );
-            })()}
+                <div>
+                  <span className="text-[11px] text-slate-500">รวมค่าน้ำมัน (ทั้งหมด):</span>
+                  <p className="font-bold text-red-600 dark:text-red-400">{grandStats.cost.toLocaleString()} บ.</p>
+                </div>
+                <div>
+                  <span className="text-[11px] text-slate-500">เฉลี่ย กม./ลิตร:</span>
+                  <p className="font-bold text-blue-600 dark:text-blue-400">
+                    {liveEff > 0 ? liveEff.toFixed(2) : '-'} กม./ลิตร
+                  </p>
+                </div>
+                <div>
+                  <span className="text-[11px] text-slate-500">เฉลี่ย บ./งาน:</span>
+                  <p className="font-bold text-orange-600 dark:text-orange-400">
+                    {liveCjob > 0 ? liveCjob.toFixed(2) : '-'} บ./งาน
+                  </p>
+                </div>
+              </div>
+              <div className="pt-2 border-t border-blue-200/70 dark:border-blue-800/70 flex flex-wrap items-center justify-between text-[11px] text-slate-600 dark:text-slate-400">
+                <span>
+                  เฉพาะปี {selectedYear}: ระยะทาง <b>{yearStats.dist.toLocaleString()}</b> กม. • ค่าน้ำมัน{' '}
+                  <b className="text-red-600 dark:text-red-400">{yearStats.cost.toLocaleString()}</b> บ. • งาน{' '}
+                  <b className="text-blue-600 dark:text-blue-400">{yearStats.jobs.toLocaleString()}</b> งาน
+                </span>
+              </div>
+            </div>
           </div>
 
           {/* Recommendation & Reason */}
@@ -798,4 +635,13 @@ export const EditCarModal: React.FC<EditCarModalProps> = ({
       </div>
     </div>
   );
+};
+
+export const EditCarModal: React.FC<EditCarModalProps> = ({
+  vehicle,
+  onClose,
+  onSave
+}) => {
+  if (!vehicle) return null;
+  return <EditCarModalInner key={vehicle.id} vehicle={vehicle} onClose={onClose} onSave={onSave} />;
 };

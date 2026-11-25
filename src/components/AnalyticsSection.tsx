@@ -25,8 +25,8 @@ import {
   FileCheck2,
   ExternalLink
 } from 'lucide-react';
-import { Vehicle, PeriodFilter, MetricFilter, MonthKey, MONTH_CONFIG } from '../types';
-import { numFormat } from '../utils/calculations';
+import { Vehicle, PeriodFilter, MetricFilter, MonthKey, MONTHS_2569, MONTHS_2570, ALL_MONTH_KEYS, MONTH_CONFIG } from '../types';
+import { numFormat, getVehicleMonthData } from '../utils/calculations';
 import { STRATEGIC_PLANS, ActionSolution } from '../utils/strategicSolutions';
 
 interface AnalyticsSectionProps {
@@ -48,6 +48,7 @@ export const AnalyticsSection: React.FC<AnalyticsSectionProps> = ({
 }) => {
   const activeMonths: MonthKey[] = selectedMonths || ['m6', 'm7', 'm8'];
   const [period, setPeriod] = useState<PeriodFilter>('total');
+  const [periodYear, setPeriodYear] = useState<2569 | 2570>(2569);
   const [metric, setMetric] = useState<MetricFilter>('cost_km_desc'); // default to the most critical topic as requested
   const [hoveredCar, setHoveredCar] = useState<{ plate: string; value: number; unit: string } | null>(null);
   const [categoryFilter, setCategoryFilter] = useState<'all' | 'technical' | 'management' | 'finance' | 'policy'>('all');
@@ -55,23 +56,23 @@ export const AnalyticsSection: React.FC<AnalyticsSectionProps> = ({
   // Helpers to get metrics for period
   const getPeriodCost = (v: Vehicle, p: PeriodFilter) => {
     if (p === 'total') {
-      return activeMonths.reduce((sum, m) => sum + (v[m]?.cost || 0), 0);
+      return activeMonths.reduce((sum, m) => sum + getVehicleMonthData(v, m).cost, 0);
     }
-    return v[p]?.cost || 0;
+    return getVehicleMonthData(v, p).cost;
   };
 
   const getPeriodDist = (v: Vehicle, p: PeriodFilter) => {
     if (p === 'total') {
-      return activeMonths.reduce((sum, m) => sum + (v[m]?.dist || 0), 0);
+      return activeMonths.reduce((sum, m) => sum + getVehicleMonthData(v, m).dist, 0);
     }
-    return v[p]?.dist || 0;
+    return getVehicleMonthData(v, p).dist;
   };
 
   const getPeriodJobs = (v: Vehicle, p: PeriodFilter) => {
     if (p === 'total') {
-      return activeMonths.reduce((sum, m) => sum + (v[m]?.jobs || 0), 0);
+      return activeMonths.reduce((sum, m) => sum + getVehicleMonthData(v, m).jobs, 0);
     }
-    return v[p]?.jobs || 0;
+    return getVehicleMonthData(v, p).jobs;
   };
 
   // Compute sorted items based on metric and period
@@ -175,15 +176,15 @@ export const AnalyticsSection: React.FC<AnalyticsSectionProps> = ({
     return sortedData.slice(0, 3);
   }, [sortedData]);
 
-  const periodLabels: Record<PeriodFilter, string> = {
-    total: `ภาพรวม ${activeMonths.length} เดือน`,
-    m6: 'เดือน 6 (มิ.ย.)',
-    m7: 'เดือน 7 (ก.ค.)',
-    m8: 'เดือน 8 (ส.ค.)',
-    m9: 'เดือน 9 (ก.ย.)',
-    m10: 'เดือน 10 (ต.ค.)',
-    m11: 'เดือน 11 (พ.ย.)'
-  };
+  const periodLabels = useMemo(() => {
+    const labels: Record<string, string> = {
+      total: `ภาพรวม ${activeMonths.length} เดือนที่เลือก`
+    };
+    ALL_MONTH_KEYS.forEach((mKey) => {
+      labels[mKey] = MONTH_CONFIG[mKey].label;
+    });
+    return labels as Record<PeriodFilter, string>;
+  }, [activeMonths.length]);
 
   const getBarColor = (plan: string) => {
     switch (plan) {
@@ -260,26 +261,76 @@ export const AnalyticsSection: React.FC<AnalyticsSectionProps> = ({
 
       <div className="p-4 bg-slate-50/80 dark:bg-slate-800/80 border-b border-slate-200 dark:border-slate-700 flex flex-col space-y-4">
         {/* Period Selector */}
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-          <div className="flex items-center gap-2 text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider shrink-0">
-            <CalendarCheck className="w-4 h-4 text-blue-600 dark:text-blue-400" />
-            <span>เลือกรอบเดือน (Period):</span>
-          </div>
-          <div className="flex flex-wrap gap-1.5 w-full sm:w-auto">
-            {(['total', 'm6', 'm7', 'm8', 'm9', 'm10', 'm11'] as PeriodFilter[]).map((p) => (
+        <div className="flex flex-col space-y-2.5">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div className="flex items-center gap-2 text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider shrink-0">
+              <CalendarCheck className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+              <span>เลือกรอบเดือนวิเคราะห์ (Period):</span>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-1.5">
               <button
-                key={p}
                 type="button"
-                onClick={() => setPeriod(p)}
-                className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-all border shadow-xs ${
-                  period === p
+                onClick={() => setPeriod('total')}
+                className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all border shadow-xs ${
+                  period === 'total'
                     ? 'bg-blue-800 dark:bg-blue-600 text-white font-bold border-blue-800 dark:border-blue-600 ring-2 ring-blue-500/20'
                     : 'bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-200 border-slate-200 dark:border-slate-600 hover:bg-slate-100 dark:hover:bg-slate-600'
                 }`}
               >
-                {periodLabels[p]}
+                {periodLabels.total}
               </button>
-            ))}
+
+              <div className="inline-flex bg-slate-200/80 dark:bg-slate-700/80 p-0.5 rounded-lg border border-slate-300/60 dark:border-slate-600">
+                <button
+                  type="button"
+                  onClick={() => setPeriodYear(2569)}
+                  className={`px-2.5 py-1 text-[11px] font-bold rounded-md transition-all ${
+                    periodYear === 2569
+                      ? 'bg-white dark:bg-slate-800 text-blue-700 dark:text-blue-300 shadow-xs'
+                      : 'text-slate-600 dark:text-slate-300 hover:text-slate-900'
+                  }`}
+                >
+                  ปี 2569 (7 ด.)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setPeriodYear(2570)}
+                  className={`px-2.5 py-1 text-[11px] font-bold rounded-md transition-all ${
+                    periodYear === 2570
+                      ? 'bg-white dark:bg-slate-800 text-indigo-700 dark:text-indigo-300 shadow-xs'
+                      : 'text-slate-600 dark:text-slate-300 hover:text-slate-900'
+                  }`}
+                >
+                  ปี 2570 (12 ด.)
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex flex-wrap gap-1.5">
+            {(periodYear === 2569 ? MONTHS_2569 : MONTHS_2570).map((mKey) => {
+              const cfg = MONTH_CONFIG[mKey];
+              const isSelected = period === mKey;
+              return (
+                <button
+                  key={mKey}
+                  type="button"
+                  onClick={() => setPeriod(mKey)}
+                  className={`px-2.5 py-1.5 text-xs font-medium rounded-lg transition-all border shadow-xs flex items-center gap-1.5 ${
+                    isSelected
+                      ? 'bg-blue-800 dark:bg-blue-600 text-white font-bold border-blue-800 dark:border-blue-600 ring-2 ring-blue-500/20'
+                      : 'bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-200 border-slate-200 dark:border-slate-600 hover:bg-slate-100 dark:hover:bg-slate-600'
+                  }`}
+                >
+                  <span
+                    className="w-2 h-2 rounded-full shrink-0"
+                    style={{ backgroundColor: isSelected ? '#ffffff' : cfg.color }}
+                  />
+                  <span>{cfg.shortYearLabel}</span>
+                </button>
+              );
+            })}
           </div>
         </div>
 
@@ -496,49 +547,56 @@ export const AnalyticsSection: React.FC<AnalyticsSectionProps> = ({
             </div>
           )}
 
-          <div className="grid grid-cols-8 sm:grid-cols-16 gap-1 sm:gap-2 items-end h-[280px] pt-6 pb-2 border-b border-slate-200 dark:border-slate-700">
-            {sortedData.map((item) => {
-              const heightPercent = Math.max(
-                (item.value / maxValue) * 100,
-                item.value > 0 ? 4 : 1
-              );
-              const color = getBarColor(item.vehicle.plan);
+          <div className="w-full overflow-x-auto pb-1">
+            <div
+              className="grid gap-1 sm:gap-1.5 items-end h-[280px] pt-6 pb-2 border-b border-slate-200 dark:border-slate-700 min-w-[680px]"
+              style={{
+                gridTemplateColumns: `repeat(${Math.max(sortedData.length, 1)}, minmax(0, 1fr))`
+              }}
+            >
+              {sortedData.map((item) => {
+                const heightPercent = Math.max(
+                  (item.value / maxValue) * 100,
+                  item.value > 0 ? 4 : 1
+                );
+                const color = getBarColor(item.vehicle.plan);
 
-              return (
-                <div
-                  key={item.vehicle.plate}
-                  onClick={() => onSelectCar(item.vehicle)}
-                  onMouseEnter={() =>
-                    setHoveredCar({
-                      plate: item.vehicle.plate,
-                      value: item.value,
-                      unit
-                    })
-                  }
-                  onMouseLeave={() => setHoveredCar(null)}
-                  className="group relative flex flex-col items-center h-full justify-end cursor-pointer"
-                >
-                  {/* Bar Value Tooltip on Top */}
-                  <span className="opacity-0 group-hover:opacity-100 text-[10px] font-bold text-slate-700 dark:text-slate-200 absolute -top-5 transition-opacity whitespace-nowrap z-20">
-                    {numFormat(item.value, 0, 1)}
-                  </span>
-
-                  {/* The Colored Bar */}
+                return (
                   <div
-                    style={{
-                      height: `${heightPercent}%`,
-                      backgroundColor: color
-                    }}
-                    className="w-full rounded-t-md transition-all duration-500 group-hover:brightness-110 shadow-xs group-hover:scale-y-105 origin-bottom"
-                  />
+                    key={item.vehicle.plate}
+                    onClick={() => onSelectCar(item.vehicle)}
+                    onMouseEnter={() =>
+                      setHoveredCar({
+                        plate: item.vehicle.plate,
+                        value: item.value,
+                        unit
+                      })
+                    }
+                    onMouseLeave={() => setHoveredCar(null)}
+                    className="group relative flex flex-col items-center h-full justify-end cursor-pointer"
+                  >
+                    {/* Bar Value Tooltip on Top */}
+                    <span className="opacity-0 group-hover:opacity-100 text-[10px] font-bold text-slate-700 dark:text-slate-200 absolute -top-5 transition-opacity whitespace-nowrap z-20">
+                      {numFormat(item.value, 0, 1)}
+                    </span>
 
-                  {/* Plate Label at the Bottom */}
-                  <span className="text-[10px] font-semibold text-slate-600 dark:text-slate-300 mt-2 truncate max-w-full group-hover:text-blue-600 group-hover:font-bold transition-colors">
-                    {item.vehicle.plate.replace(' ', '')}
-                  </span>
-                </div>
-              );
-            })}
+                    {/* The Colored Bar */}
+                    <div
+                      style={{
+                        height: `${heightPercent}%`,
+                        backgroundColor: color
+                      }}
+                      className="w-full rounded-t-md transition-all duration-500 group-hover:brightness-110 shadow-xs group-hover:scale-y-105 origin-bottom"
+                    />
+
+                    {/* Plate Label at the Bottom */}
+                    <span className="text-[9px] sm:text-[10px] font-semibold text-slate-600 dark:text-slate-300 mt-2 truncate max-w-full group-hover:text-blue-600 group-hover:font-bold transition-colors">
+                      {item.vehicle.plate.replace(' ', '')}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
           </div>
 
           <div className="flex justify-between items-center text-[11px] text-slate-400 mt-2">

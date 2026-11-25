@@ -1,4 +1,10 @@
-import { Vehicle, MonthlyOperationalData, MonthKey } from '../types';
+import {
+  Vehicle,
+  MonthlyOperationalData,
+  MonthKey,
+  ALL_MONTH_KEYS,
+  MonthlyComputedStat
+} from '../types';
 
 export function numFormat(num: number | undefined | null, min = 2, max = 2): string {
   if (num === undefined || num === null || isNaN(num)) return '-';
@@ -8,7 +14,24 @@ export function numFormat(num: number | undefined | null, min = 2, max = 2): str
   });
 }
 
-export function calculateMonthlyStats(m: MonthlyOperationalData | undefined) {
+export function getVehicleMonthData(
+  vehicle: Vehicle,
+  monthKey: MonthKey
+): MonthlyOperationalData {
+  const data = vehicle[monthKey];
+  if (!data) {
+    return { dist: 0, fuel: 0, cost: 0, jobs: 0, drivers: [] };
+  }
+  return {
+    dist: data.dist || 0,
+    fuel: data.fuel || 0,
+    cost: data.cost || 0,
+    jobs: data.jobs || 0,
+    drivers: data.drivers || []
+  };
+}
+
+export function calculateMonthlyStats(m: MonthlyOperationalData | undefined): MonthlyComputedStat {
   if (!m) return { eff: 0, cKm: 0, cJob: 0 };
   const eff = m.fuel > 0 ? m.dist / m.fuel : 0;
   const cKm = m.dist > 0 ? m.cost / m.dist : 0;
@@ -20,12 +43,10 @@ export function calculateVehicleTotals(
   vehicle: Vehicle,
   selectedMonths: MonthKey[] = ['m6', 'm7', 'm8']
 ) {
-  const m6 = calculateMonthlyStats(vehicle.m6);
-  const m7 = calculateMonthlyStats(vehicle.m7);
-  const m8 = calculateMonthlyStats(vehicle.m8);
-  const m9 = calculateMonthlyStats(vehicle.m9);
-  const m10 = calculateMonthlyStats(vehicle.m10);
-  const m11 = calculateMonthlyStats(vehicle.m11);
+  const monthlyStats = {} as Record<MonthKey, MonthlyComputedStat>;
+  ALL_MONTH_KEYS.forEach((mKey) => {
+    monthlyStats[mKey] = calculateMonthlyStats(vehicle[mKey]);
+  });
 
   let totalDist = 0;
   let totalFuel = 0;
@@ -52,12 +73,7 @@ export function calculateVehicleTotals(
   const limitUsagePercent = totalLimit > 0 ? (totalCost / totalLimit) * 100 : 0;
 
   return {
-    m6,
-    m7,
-    m8,
-    m9,
-    m10,
-    m11,
+    ...monthlyStats,
     totalDist,
     totalFuel,
     totalCost,
